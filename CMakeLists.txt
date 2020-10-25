@@ -5,7 +5,7 @@ if(POLICY CMP0074)
     cmake_policy(SET CMP0074 NEW)
 endif()
 
-if(${CMAKE_VERSION} VERSION_GREATER "3.4.0") 
+if(${CMAKE_VERSION} VERSION_GREATER "3.4.0")
   find_program(CCACHE_PROGRAM ccache)
   if(CCACHE_PROGRAM)
     set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
@@ -49,6 +49,7 @@ include_directories("third_party/HTTPRequest/include"
 list(APPEND SOURCES "${PROJECT_SOURCE_DIR}/horovod/common/common.cc"
         "${PROJECT_SOURCE_DIR}/horovod/common/controller.cc"
         "${PROJECT_SOURCE_DIR}/horovod/common/fusion_buffer_manager.cc"
+        "${PROJECT_SOURCE_DIR}/horovod/common/group_table.cc"
         "${PROJECT_SOURCE_DIR}/horovod/common/half.cc"
         "${PROJECT_SOURCE_DIR}/horovod/common/logging.cc"
         "${PROJECT_SOURCE_DIR}/horovod/common/message.cc"
