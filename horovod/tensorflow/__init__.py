@@ -289,7 +289,7 @@ def _make_allreduce_grads_fn(name, device_dense, device_sparse,
                               compression=compression,
                               op=op,
                               prescale_factor=prescale_factor,
-                              postscale_factor=postscale_factor
+                              postscale_factor=postscale_factor,
                               group_id=group_ids[idx // num_grads_per_group] if group_ids else -1)
                     if grad is not None else grad
                     for idx,grad in enumerate(grads)]
