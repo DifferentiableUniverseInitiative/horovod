@@ -996,7 +996,8 @@ Status EnqueueTensorAllgather(std::shared_ptr<OpContext> context,
                               std::shared_ptr<Tensor> tensor,
                               std::shared_ptr<ReadyEvent> ready_event,
                               const std::string name, const int device,
-                              StatusCallback callback) {
+                              StatusCallback callback,
+                              const int group_id) {
   Request message;
   message.set_request_rank(horovod_global.controller->GetRank());
   message.set_tensor_name(name);
@@ -1014,6 +1015,15 @@ Status EnqueueTensorAllgather(std::shared_ptr<OpContext> context,
   e.ready_event = ready_event;
   e.device = device;
   e.callback = callback;
+
+  // Only set group_id if feature is active
+  if (horovod_global.grouped_allreduces) {
+    if (group_id != NULL_GROUP_ID &&
+        !horovod_global.group_table.IsIDRegistered(group_id)) {
+        return UNREGISTERED_GROUP_ERROR;
+    }
+    message.set_group_id(group_id);
+  }
 
   if (horovod_global.shut_down) {
     return SHUT_DOWN_ERROR;

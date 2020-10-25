@@ -141,7 +141,7 @@ def _allreduce_grad(op, grad):
                       ignore_name_scope=ignore_name_scope)
 
 
-def allgather(tensor, name=None, ignore_name_scope=False):
+def allgather(tensor, name=None, ignore_name_scope=False, group_id=-1):
     """An op which concatenates the input tensor with the same input tensor on
     all other Horovod processes.
 
@@ -157,7 +157,12 @@ def allgather(tensor, name=None, ignore_name_scope=False):
     """
     if name is None and not _executing_eagerly():
         name = 'HorovodAllgather_%s' % _normalize_name(tensor.name)
-    return MPI_LIB.horovod_allgather(tensor, name=name,
+    if group_id != -1:
+        return MPI_LIB.horovod_allgather(tensor, name=name,
+                                        ignore_name_scope=ignore_name_scope,
+                                        group_id=group_id)
+    else:
+        return MPI_LIB.horovod_allgather(tensor, name=name,
                                      ignore_name_scope=ignore_name_scope)
 
 
