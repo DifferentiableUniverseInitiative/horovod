@@ -36,6 +36,7 @@ from horovod.tensorflow.mpi_ops import gloo_enabled, gloo_built
 from horovod.tensorflow.mpi_ops import nccl_built, ddl_built, ccl_built, cuda_built, rocm_built
 from horovod.tensorflow.mpi_ops import Average, Sum, Adasum
 from horovod.tensorflow.mpi_ops import handle_average_backwards_compatibility, check_num_rank_power_of_2
+from horovod.tensorflow.mpi_ops import register_group
 from horovod.tensorflow.util import _executing_eagerly, _make_subgraph, _cache
 from horovod.tensorflow.mpi_ops import join
 from horovod.tensorflow.sync_batch_norm import SyncBatchNormalization
@@ -53,7 +54,7 @@ if tf.__version__.startswith('2.2.'):
 def allreduce(tensor, average=None, device_dense='', device_sparse='',
               compression=Compression.none, op=None,
               prescale_factor=1.0, postscale_factor=1.0,
-              name=None):
+              name=None, group_id=-1):
     """Perform an allreduce on a tf.Tensor or tf.IndexedSlices.
 
     This function performs a bandwidth-optimal ring allreduce on the input
@@ -81,6 +82,7 @@ def allreduce(tensor, average=None, device_dense='', device_sparse='',
         prescale_factor: Multiplicative factor to scale tensor before allreduce.
         postscale_factor: Multiplicative factor to scale tensor after allreduce.
         name: A name of the allreduce operation
+        group_id: Optional integer id for explicitly grouping allreduce ops.
 
     Returns:
         A tensor of the same shape and type as `tensor`, summed across all
@@ -119,7 +121,7 @@ def allreduce(tensor, average=None, device_dense='', device_sparse='',
             summed_tensor_compressed = _allreduce(tensor_compressed, op=op,
                                                   prescale_factor=prescale_factor,
                                                   postscale_factor=postscale_factor,
-                                                  name=name)
+                                                  name=name, group_id=group_id)
             summed_tensor = compression.decompress(summed_tensor_compressed, ctx)
             if op == Adasum:
                 if 'CPU' not in tensor.device and gpu_available('tensorflow'):
@@ -245,7 +247,8 @@ if _SessionRunHook is not None and _get_default_graph is not None:
 
 @_cache
 def _make_allreduce_grads_fn(name, device_dense, device_sparse,
-                             compression, sparse_as_dense, op, gradient_predivide_factor):
+                             compression, sparse_as_dense, op,
+                             gradient_predivide_factor, num_groups=0):
     if op == Average:
         # Split average operation across pre/postscale factors
         # C++ backend will apply additional 1 / size() factor to postscale_factor for op == Average.
@@ -262,15 +265,34 @@ def _make_allreduce_grads_fn(name, device_dense, device_sparse,
                          if grad is not None and isinstance(grad, tf.IndexedSlices)
                          else grad for grad in grads]
 
+            # Right now, group ids/sizes are set to split evenly by index. Can explore
+            # other schemes if we would like.
+            group_ids = None
+            if num_groups > 0:
+                # Register groups/get group ids
+                # Note: Each group needs a unique name. Currently using a basic naming scheme
+                # with gradient tensor names and an index. The group name is used to reassign
+                # existing group ids in modes of operation where the group registration calls
+                # may occur multiple times in a loop on the same set of tensors.
+                num_grads_per_group = (len(grads) + num_groups - 1) // num_groups
+                group_ids = [register_group(num_grads_per_group,
+                                            "%s:%s:%d" % (grads[0].name, grads[-1].name, i))
+                             for i in range(len(grads) // num_grads_per_group)]
+                if len(grads) % num_grads_per_group != 0:
+                    group_ids.append(register_group(len(grads) % num_grads_per_group,
+                                                    "%s:%s:%d" % (grads[0].name, grads[-1].name,
+                                                    len(grads) // num_grads_per_group + 1)))
+
             return [_allreduce_cond(grad,
-                                    device_dense=device_dense,
-                                    device_sparse=device_sparse,
-                                    compression=compression,
-                                    op=op,
-                                    prescale_factor=prescale_factor,
-                                    postscale_factor=postscale_factor)
+                              device_dense=device_dense,
+                              device_sparse=device_sparse,
+                              compression=compression,
+                              op=op,
+                              prescale_factor=prescale_factor,
+                              postscale_factor=postscale_factor
+                              group_id=group_ids[idx // num_grads_per_group] if group_ids else -1)
                     if grad is not None else grad
-                    for grad in grads]
+                    for idx,grad in enumerate(grads)]
 
     if _executing_eagerly():
         return _make_subgraph(allreduce_grads)
@@ -296,7 +318,8 @@ if _LegacyOptimizer is not None:
 
         def __init__(self, optimizer, name=None, use_locking=False, device_dense='',
                     device_sparse='', compression=Compression.none,
-                    sparse_as_dense=False, op=Average, gradient_predivide_factor=1.0):
+                    sparse_as_dense=False, op=Average,
+                    gradient_predivide_factor=1.0, num_groups=0):
             if name is None:
                 name = "Distributed{}".format(type(optimizer).__name__)
             super(_DistributedOptimizer, self).__init__(name=name, use_locking=use_locking)
@@ -304,7 +327,7 @@ if _LegacyOptimizer is not None:
             self._optimizer = optimizer
             self._allreduce_grads = _make_allreduce_grads_fn(
                 name, device_dense, device_sparse, compression, sparse_as_dense, op,
-                gradient_predivide_factor)
+                gradient_predivide_factor, num_groups)
 
         def compute_gradients(self, *args, **kwargs):
             """Compute gradients of all trainable variables.
@@ -436,7 +459,7 @@ def DistributedOptimizer(optimizer, name=None, use_locking=False, device_dense='
                          device_sparse='', compression=Compression.none,
                          sparse_as_dense=False, backward_passes_per_step=1,
                          op=Average, gradient_predivide_factor=1.0,
-                         average_aggregated_gradients=False):
+                         average_aggregated_gradients=False, num_groups=0):
     """Construct a new DistributedOptimizer, which uses another optimizer
     under the hood for computing single-process gradient values and
     applying gradient updates after the gradient values have been combined
@@ -482,6 +505,9 @@ def DistributedOptimizer(optimizer, name=None, use_locking=False, device_dense='
         Whether to average the aggregated gradients that have been accumulated
         over multiple mini-batches. If true divides gradients updates by
         backward_passes_per_step. Only applicable for backward_passes_per_step > 1.
+      num_groups:
+        Number of groups to assign gradient allreduce ops to for explicit
+        grouping. Defaults to no explicit groups.
     """
     if gradient_predivide_factor != 1.0:
         if rocm_built():
@@ -510,6 +536,7 @@ def DistributedOptimizer(optimizer, name=None, use_locking=False, device_dense='
                 sparse_as_dense=sparse_as_dense,
                 op=op,
                 gradient_predivide_factor=gradient_predivide_factor,
+                num_groups=num_groups
             )
     elif isinstance(optimizer, tf.keras.optimizers.Optimizer):
         if op == Adasum:

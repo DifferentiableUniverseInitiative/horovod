@@ -50,6 +50,10 @@ GpuStreamHandle AsGpuStreamValue(Stream* stream);
 
 #define OMPI_SKIP_MPICXX
 #include "../common/operations.h"
+#include "../common/message.h"
+
+#define STRING_EXPAND(x) #x
+#define TOSTRING(x) STRING_EXPAND(x)
 
 using namespace tensorflow;
 using namespace horovod;
@@ -376,6 +380,7 @@ public:
     OP_REQUIRES_OK(context, context->GetAttr("prescale_factor", &prescale_factor_));
     OP_REQUIRES_OK(context, context->GetAttr("postscale_factor", &postscale_factor_));
     OP_REQUIRES_OK(context, context->GetAttr("ignore_name_scope", &ignore_name_scope_));
+    OP_REQUIRES_OK(context, context->GetAttr("group_id", &group_id_));
   }
 
   void ComputeAsync(OpKernelContext* context, DoneCallback done) override {
@@ -405,7 +410,7 @@ public:
         [context, done](const common::Status& status) {
           context->SetStatus(ConvertStatus(status));
           done();
-        }, reduce_op, (double) prescale_factor_, (double) postscale_factor_);
+    }, reduce_op, (double) prescale_factor_, (double) postscale_factor_, group_id_);
     OP_REQUIRES_OK_ASYNC(context, ConvertStatus(enqueue_result), done);
   }
 
@@ -415,6 +420,7 @@ private:
   float prescale_factor_;
   float postscale_factor_;
   bool ignore_name_scope_;
+  int group_id_;
 };
 
 REGISTER_KERNEL_BUILDER(Name("HorovodAllreduce").Device(DEVICE_CPU),
@@ -430,6 +436,7 @@ REGISTER_OP("HorovodAllreduce")
     .Attr("prescale_factor: float")
     .Attr("postscale_factor: float")
     .Attr("ignore_name_scope: bool = False")
+    .Attr("group_id: int = " TOSTRING(NULL_GROUP_ID))
     .Input("tensor: T")
     .Output("sum: T")
     .SetShapeFn([](shape_inference::InferenceContext* c) {

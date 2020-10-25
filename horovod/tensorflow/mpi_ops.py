@@ -67,6 +67,7 @@ ddl_built = _basics.ddl_built
 ccl_built = _basics.ccl_built
 cuda_built = _basics.cuda_built
 rocm_built = _basics.rocm_built
+register_group = _basics.register_group
 
 # import reduction op values
 Average = _basics.Average
@@ -93,7 +94,7 @@ def _normalize_name(name):
 
 
 def _allreduce(tensor, name=None, op=Sum, prescale_factor=1.0, postscale_factor=1.0,
-               ignore_name_scope=False):
+               ignore_name_scope=False, group_id=-1):
     """An op which reduces an input tensor over all the Horovod processes. The
     default reduction is a sum.
 
@@ -107,7 +108,14 @@ def _allreduce(tensor, name=None, op=Sum, prescale_factor=1.0, postscale_factor=
     """
     if name is None and not _executing_eagerly():
         name = 'HorovodAllreduce_%s' % _normalize_name(tensor.name)
-    return MPI_LIB.horovod_allreduce(tensor, name=name, reduce_op=op,
+    if group_id != -1:
+        return MPI_LIB.horovod_allreduce(tensor, name=name, reduce_op=op,
+                                     prescale_factor=prescale_factor,
+                                     postscale_factor=postscale_factor,
+                                     ignore_name_scope=ignore_name_scope,
+                                     group_id=group_id)
+    else:
+        return MPI_LIB.horovod_allreduce(tensor, name=name, reduce_op=op,
                                      prescale_factor=prescale_factor,
                                      postscale_factor=postscale_factor,
                                      ignore_name_scope=ignore_name_scope)

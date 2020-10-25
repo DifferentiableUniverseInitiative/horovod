@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "global_state.h"
+#include "group_table.h"
 #include "parameter_manager.h"
 #include "response_cache.h"
 #include "stall_inspector.h"
@@ -36,7 +37,8 @@ using MessageTable = std::unordered_map<std::string, std::vector<Request>>;
 class Controller : public std::enable_shared_from_this<Controller> {
 public:
   Controller(ResponseCache& response_cache, TensorQueue& tensor_queue,
-             Timeline& timeline, ParameterManager& parameter_manager);
+             Timeline& timeline, ParameterManager& parameter_manager,
+             GroupTable& group_table);
 
   Controller(const Controller&) = delete;
 
@@ -214,6 +216,8 @@ protected:
   ResponseCache& response_cache_;
 
   ParameterManager& parameter_manager_;
+
+  GroupTable& group_table_;
 };
 
 } // namespace common
