@@ -907,7 +907,8 @@ Status EnqueueTensorAllreduce(std::shared_ptr<OpContext> context,
                               StatusCallback callback,
                               ReduceOp reduce_op,
                               double prescale_factor,
-                              double postscale_factor) {
+                              double postscale_factor,
+                              Communicator comm) {
   // Wrap inputs in std::vector and pass onto multi tensor implementation
   std::vector<std::shared_ptr<OpContext>> contexts;
   std::vector<std::shared_ptr<Tensor>> tensors;
@@ -925,7 +926,7 @@ Status EnqueueTensorAllreduce(std::shared_ptr<OpContext> context,
 
   return EnqueueTensorAllreduces(contexts, tensors, outputs, ready_events,
                                  names, device, callbacks, reduce_op,
-                                 prescale_factor, postscale_factor);
+                                 prescale_factor, postscale_factor, comm);
 }
 
 Status EnqueueTensorAllreduces(std::vector<std::shared_ptr<OpContext>>& contexts,
@@ -937,7 +938,8 @@ Status EnqueueTensorAllreduces(std::vector<std::shared_ptr<OpContext>>& contexts
                                std::vector<StatusCallback>& callbacks,
                                ReduceOp reduce_op,
                                double prescale_factor,
-                               double postscale_factor) {
+                               double postscale_factor,
+                               Communicator comm) {
   Status status;
 
   if (reduce_op == ReduceOp::AVERAGE) {
@@ -970,6 +972,7 @@ Status EnqueueTensorAllreduces(std::vector<std::shared_ptr<OpContext>>& contexts
     message.set_device(device);
     message.set_prescale_factor(prescale_factor);
     message.set_postscale_factor(postscale_factor);
+    message.set_communicator(comm);
 
     if (reduce_op == ReduceOp::ADASUM) {
       message.set_request_type(Request::ADASUM);
