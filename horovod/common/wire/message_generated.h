@@ -21,6 +21,7 @@
 #define FLATBUFFERS_GENERATED_MESSAGE_HOROVOD_COMMON_WIRE_H_
 
 #include "flatbuffers/flatbuffers.h"
+#include "common.h"
 
 namespace horovod {
 namespace common {
@@ -176,7 +177,8 @@ struct Request FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_DEVICE = 14,
     VT_TENSOR_SHAPE = 16,
     VT_PRESCALE_FACTOR = 18,
-    VT_POSTSCALE_FACTOR = 20
+    VT_POSTSCALE_FACTOR = 20,
+    VT_COMMUNICATOR = 21
   };
   int32_t request_rank() const {
     return GetField<int32_t>(VT_REQUEST_RANK, 0);
@@ -205,6 +207,9 @@ struct Request FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   double postscale_factor() const {
     return GetField<double>(VT_POSTSCALE_FACTOR, 0.0);
   }
+  double communicator() const {
+    return GetField<int32_t>(VT_COMMUNICATOR, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_REQUEST_RANK) &&
@@ -218,6 +223,7 @@ struct Request FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(tensor_shape()) &&
            VerifyField<double>(verifier, VT_PRESCALE_FACTOR) &&
            VerifyField<double>(verifier, VT_POSTSCALE_FACTOR) &&
+           VerifyField<int32_t>(verifier, VT_COMMUNICATOR) &&
            verifier.EndTable();
   }
 };
@@ -252,6 +258,9 @@ struct RequestBuilder {
   void add_postscale_factor(double postscale_factor) {
     fbb_.AddElement<double>(Request::VT_POSTSCALE_FACTOR, postscale_factor, 0.0);
   }
+  void add_communicator(Communicator comm) {
+    fbb_.AddElement<int32_t>(Request::VT_COMMUNICATOR, (int32_t) comm, 0);
+  }
   explicit RequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -274,7 +283,8 @@ inline flatbuffers::Offset<Request> CreateRequest(
     int32_t device = 0,
     flatbuffers::Offset<flatbuffers::Vector<int64_t>> tensor_shape = 0,
     double prescale_factor = 0.0,
-    double postscale_factor = 0.0) {
+    double postscale_factor = 0.0,
+    Communicator comm = Communicator::GLOBAL) {
   RequestBuilder builder_(_fbb);
   builder_.add_postscale_factor(postscale_factor);
   builder_.add_prescale_factor(prescale_factor);
@@ -285,6 +295,7 @@ inline flatbuffers::Offset<Request> CreateRequest(
   builder_.add_request_rank(request_rank);
   builder_.add_tensor_type(tensor_type);
   builder_.add_request_type(request_type);
+  builder_.add_communicator(comm);
   return builder_.Finish();
 }
 
@@ -298,7 +309,8 @@ inline flatbuffers::Offset<Request> CreateRequestDirect(
     int32_t device = 0,
     const std::vector<int64_t> *tensor_shape = nullptr,
     double prescale_factor = 0.0,
-    double postscale_factor = 0.0) {
+    double postscale_factor = 0.0,
+    Communicator comm = Communicator::GLOBAL) {
   auto tensor_name__ = tensor_name ? _fbb.CreateString(tensor_name) : 0;
   auto tensor_shape__ = tensor_shape ? _fbb.CreateVector<int64_t>(*tensor_shape) : 0;
   return horovod::common::wire::CreateRequest(
@@ -311,7 +323,8 @@ inline flatbuffers::Offset<Request> CreateRequestDirect(
       device,
       tensor_shape__,
       prescale_factor,
-      postscale_factor);
+      postscale_factor, 
+      comm);
 }
 
 struct RequestList FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {

@@ -149,9 +149,13 @@ double Request::prescale_factor() const { return prescale_factor_; };
 
 double Request::postscale_factor() const { return postscale_factor_; };
 
+Communicator Request::communicator() const {return comm_; };
+
 void Request::set_prescale_factor(const double prescale_factor) { prescale_factor_ = prescale_factor; };
 
 void Request::set_postscale_factor(const double postscale_factor) { postscale_factor_ = postscale_factor; };
+
+void Request::set_communicator(const Communicator comm){ comm_ = comm; };
 
 const std::vector<int64_t>& Request::tensor_shape() const {
   return tensor_shape_;
@@ -179,6 +183,7 @@ void Request_ParseFromWire(Request& request,
                                                 obj->tensor_shape()->end()));
   request.set_prescale_factor(obj->prescale_factor());
   request.set_postscale_factor(obj->postscale_factor());
+  request.set_communicator(obj->communicator());
 }
 
 void Request_SerializeToWire(const Request& request,
@@ -199,6 +204,7 @@ void Request_SerializeToWire(const Request& request,
   request_builder.add_tensor_shape(tensor_shape_wire);
   request_builder.add_prescale_factor(request.prescale_factor());
   request_builder.add_postscale_factor(request.postscale_factor());
+  request_builder.add_communicator(request.communicator());
   obj = request_builder.Finish();
 }
 

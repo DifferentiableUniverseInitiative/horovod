@@ -21,6 +21,7 @@
 
 #include <string>
 #include <vector>
+#include "common.h"
 
 namespace horovod {
 namespace common {
@@ -94,6 +95,10 @@ public:
   void set_prescale_factor(const double prescale_factor);
 
   void set_postscale_factor(const double postscale_factor);
+  
+  void set_communicator(const Communicator comm);
+  
+  Communicator communicator() const;
 
   static void ParseFromBytes(Request& request, const uint8_t* input);
 
@@ -110,6 +115,7 @@ private:
   std::vector<int64_t> tensor_shape_;
   double prescale_factor_ = 1.0;
   double postscale_factor_ = 1.0;
+  Communicator comm_ = Communicator::GLOBAL;
 };
 
 class RequestList {

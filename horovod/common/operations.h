@@ -119,7 +119,8 @@ Status EnqueueTensorAllreduce(std::shared_ptr<OpContext> context,
                               StatusCallback callback,
                               ReduceOp reduce_op = ReduceOp::SUM,
                               double prescale_factor = 1.0,
-                              double postscale_factor = 1.0);
+                              double postscale_factor = 1.0,
+                              Communicator comm = Communicator::GLOBAL);
 
 Status EnqueueTensorAllgather(std::shared_ptr<OpContext> context,
                               std::shared_ptr<Tensor> tensor,
