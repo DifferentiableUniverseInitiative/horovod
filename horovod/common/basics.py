@@ -13,6 +13,10 @@
 # limitations under the License.
 # =============================================================================
 
+import init_cuda
+init_cuda.initialisation_cuda()
+from mpi4py import MPI
+
 import atexit
 import ctypes
 
