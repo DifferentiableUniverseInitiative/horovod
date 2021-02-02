@@ -31,6 +31,13 @@ enum DataType:byte {
     HOROVOD_BOOL = 9
 }
 
+// Communicator
+enum Communicator:byte {
+  GLOBAL = 0,
+  LOCAL = 1,
+  CROSS = 2
+}
+
 // An Request is a message sent from a rank greater than zero to the
 // coordinator (rank zero), informing the coordinator of an operation that
 // the rank wants to do and the tensor that it wants to apply the operation to.
@@ -63,6 +70,8 @@ table Request {
     prescale_factor:double;
     postscale_factor:double;
 
+	// Communicator
+    communicator:Communicator;
 }
 table RequestList {
     requests:[Request];
@@ -110,6 +119,9 @@ table Response {
     // Prescale and postscale factors
     prescale_factor:double;
     postscale_factor:double;
+
+	// Communicator
+	communicator:Communicator;
 }
 table ResponseList {
     responses:[Response];
