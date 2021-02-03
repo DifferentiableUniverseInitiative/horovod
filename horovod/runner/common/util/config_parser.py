@@ -43,7 +43,7 @@ HOROVOD_STALL_SHUTDOWN_TIME_SECONDS = 'HOROVOD_STALL_SHUTDOWN_TIME_SECONDS'
 HOROVOD_MPI_THREADS_DISABLE = 'HOROVOD_MPI_THREADS_DISABLE'
 HOROVOD_NUM_NCCL_STREAMS = 'HOROVOD_NUM_NCCL_STREAMS'
 NCCL_IB_DISABLE = 'NCCL_IB_DISABLE'
-HOROVOD_CCL_BGT_AFFINITY = 'HOROVOD_CCL_BGT_AFFINITY'
+HOROVOD_THREAD_AFFINITY = 'HOROVOD_THREAD_AFFINITY'
 HOROVOD_GLOO_TIMEOUT_SECONDS = 'HOROVOD_GLOO_TIMEOUT_SECONDS'
 
 # Logging knobs
@@ -111,14 +111,14 @@ def set_args_from_config(args, config, override_args):
     if library_options:
         _set_arg_from_config(args, 'mpi_threads_disable', override_args, library_options)
         _set_arg_from_config(args, 'num_nccl_streams', override_args, library_options)
-        _set_arg_from_config(args, 'ccl_bgt_affinity', override_args, library_options)
+        _set_arg_from_config(args, 'thread_affinity', override_args, library_options)
         _set_arg_from_config(args, 'gloo_timeout_seconds', override_args, library_options)
 
     # Logging
     logging = config.get('logging')
     if logging:
         _set_arg_from_config(args, 'level', override_args, logging, arg_prefix='log_')
-        _set_arg_from_config(args, 'hide_timestamp', override_args, logging, arg_prefix='log_')
+        _set_arg_from_config(args, 'with_timestamp', override_args, logging, arg_prefix='log_')
 
 
 def _validate_arg_nonnegative(args, arg_name):
@@ -143,7 +143,7 @@ def validate_config_args(args):
     _validate_arg_nonnegative(args, 'stall_check_warning_time_seconds')
     _validate_arg_nonnegative(args, 'stall_check_shutdown_time_seconds')
     _validate_arg_nonnegative(args, 'num_nccl_streams')
-    _validate_arg_nonnegative(args, 'ccl_bgt_affinity')
+    _validate_arg_nonnegative(args, 'thread_affinity')
     _validate_arg_nonnegative(args, 'gloo_timeout_seconds')
 
 
@@ -158,6 +158,9 @@ def _add_arg_to_env(env, env_key, arg_value, transform_fn=None):
 def set_env_from_args(env, args):
     def identity(value):
         return 1 if value else 0
+
+    def complement(value):
+        return 0 if value else 1
 
     # Params
     _add_arg_to_env(env, HOROVOD_FUSION_THRESHOLD, args.fusion_threshold_mb, lambda v: v * 1024 * 1024)
@@ -189,11 +192,11 @@ def set_env_from_args(env, args):
     _add_arg_to_env(env, HOROVOD_MPI_THREADS_DISABLE, args.mpi_threads_disable, identity)
     _add_arg_to_env(env, HOROVOD_NUM_NCCL_STREAMS, args.num_nccl_streams)
     _add_arg_to_env(env, NCCL_IB_DISABLE, 1 if args.tcp_flag else None)
-    _add_arg_to_env(env, HOROVOD_CCL_BGT_AFFINITY, args.ccl_bgt_affinity)
+    _add_arg_to_env(env, HOROVOD_THREAD_AFFINITY, args.thread_affinity)
     _add_arg_to_env(env, HOROVOD_GLOO_TIMEOUT_SECONDS, args.gloo_timeout_seconds)
 
     # Logging
     _add_arg_to_env(env, HOROVOD_LOG_LEVEL, args.log_level)
-    _add_arg_to_env(env, HOROVOD_LOG_HIDE_TIME, args.log_hide_timestamp, identity)
+    _add_arg_to_env(env, HOROVOD_LOG_HIDE_TIME, args.log_with_timestamp, complement)
 
     return env

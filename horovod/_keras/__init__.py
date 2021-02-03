@@ -28,7 +28,8 @@ _PRE_TF_2_4_0 = LooseVersion(tf.__version__) < LooseVersion('2.4.0')
 def create_distributed_optimizer(keras, optimizer, name, device_dense, device_sparse,
                                  compression, sparse_as_dense, gradient_predivide_factor,
                                  op, backward_passes_per_step=1,
-                                 average_aggregated_gradients=False):
+                                 average_aggregated_gradients=False,
+                                 num_groups=0):
     class _DistributedOptimizer(keras.optimizers.Optimizer):
         _HAS_AGGREGATE_GRAD = True
 
@@ -43,7 +44,8 @@ def create_distributed_optimizer(keras, optimizer, name, device_dense, device_sp
                 compression,
                 sparse_as_dense,
                 op,
-                gradient_predivide_factor)
+                gradient_predivide_factor,
+                num_groups)
 
             self._agg_helper = None
             if backward_passes_per_step > 1:
@@ -97,6 +99,15 @@ def create_distributed_optimizer(keras, optimizer, name, device_dense, device_sp
 
         def apply_gradients(self, *args, **kwargs):
             if self._agg_helper:
+                if isinstance(args[0], zip):
+                    # If grad_and_vars are passed in as a zip object
+                    # convert to a list. This is necessary for TF2.4+
+                    # b/c args[0] is used in both conditional branches
+                    # inside _agg_helper.apply_gradients().
+                    args = list(args)
+                    args[0] = list(args[0])
+                    args = tuple(args)
+
                 results = self._agg_helper.apply_gradients(
                     lambda: super(self.__class__, self).apply_gradients(*args, **kwargs),
                     self,
@@ -136,10 +147,11 @@ if hasattr(hvd, 'broadcast_global_variables'):
         return _eval(backend, hvd.broadcast_global_variables(root_rank))
 
 
-def allreduce(backend, value, name, average, prescale_factor, postscale_factor):
+def allreduce(backend, value, name, average, prescale_factor, postscale_factor, op, compression):
     return _eval(backend, hvd.allreduce(tf.constant(value, name=name), average=average,
                                         prescale_factor=prescale_factor,
-                                        postscale_factor=postscale_factor))
+                                        postscale_factor=postscale_factor,
+                                        op=op, compression=compression))
 
 
 def allgather(backend, value, name):

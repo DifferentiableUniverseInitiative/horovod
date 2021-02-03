@@ -15,6 +15,7 @@
 # limitations under the License.
 # =============================================================================
 
+import json
 import multiprocessing
 import os
 import sys
@@ -22,6 +23,8 @@ import sysconfig
 import warnings
 
 from contextlib import contextmanager
+
+from horovod.common.exceptions import get_version_mismatch_message, HorovodVersionMismatchError
 
 
 EXTENSIONS = ['tensorflow', 'torch', 'mxnet']
@@ -244,3 +247,22 @@ def num_rank_is_power_2(num_rank):
     TODO support non-power of 2 ranks.
     """
     return num_rank != 0 and ((num_rank & (num_rank -1)) == 0)
+
+def split_list(l, n):
+    """
+    Splits list l into n approximately even sized chunks.
+    """
+    d, r = divmod(len(l), n)
+    return [l[i * d + min(i, r):(i + 1) * d + min(i + 1, r)] for i in range(n)]
+
+
+def check_installed_version(name, version, exception=None):
+    file_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),\
+        os.pardir, "metadata.json"))
+    with open(file_path) as f:
+        installed_version = json.load(f).get(name)
+        if installed_version != version:
+            if exception is None:
+                warnings.warn(get_version_mismatch_message(name, version, installed_version))
+            else:
+                raise HorovodVersionMismatchError(name, version, installed_version) from exception

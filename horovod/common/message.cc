@@ -155,6 +155,10 @@ void Request::set_prescale_factor(const double prescale_factor) { prescale_facto
 
 void Request::set_postscale_factor(const double postscale_factor) { postscale_factor_ = postscale_factor; };
 
+int32_t Request::group_id() const { return group_id_; }
+
+void Request::set_group_id(int32_t value) { group_id_ = value; }
+
 void Request::set_communicator(const Communicator comm){ comm_ = comm; };
 
 const std::vector<int64_t>& Request::tensor_shape() const {

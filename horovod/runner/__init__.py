@@ -69,12 +69,13 @@ class _HorovodArgs(object):
         self.tcp_flag = None
         self.binding_args = None
         self.num_nccl_streams = None
-        self.ccl_bgt_affinity = None
+        self.thread_affinity = None
         self.gloo_timeout_seconds = None
 
         # logging arguments
         self.log_level = None
-        self.log_hide_timestamp = None
+        self.log_with_timestamp = None
+        self.prefix_output_with_timestamp = None
 
         # host arguments
         self.hosts = None

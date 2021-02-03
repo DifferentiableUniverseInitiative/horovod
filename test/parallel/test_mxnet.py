@@ -15,27 +15,40 @@
 # ==============================================================================
 
 import os
-import pytest
+import sys
 import itertools
 import unittest
-import numpy as np
-import mxnet as mx
-
 from distutils.version import LooseVersion
 
-from mxnet.base import MXNetError
-from mxnet.test_utils import almost_equal, same
+import pytest
+import numpy as np
 
-import horovod.mxnet as hvd
+sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir, 'utils'))
 
-has_gpu = mx.context.num_gpus() > 0
+from common import skip_or_fail_gpu_test
 
-ccl_supported_types = set(['int32', 'int64', 'float32', 'float64'])
+try:
+    import mxnet as mx
+    from mxnet.base import MXNetError
+    from mxnet.test_utils import almost_equal, same
+    import horovod.mxnet as hvd
 
-# MXNet 1.4.x will kill test MPI process if error occurs during operation enqueue. Skip
-# those tests for versions earlier than 1.5.0.
-_skip_enqueue_errors = LooseVersion(mx.__version__) < LooseVersion('1.5.0')
+    has_gpu = mx.context.num_gpus() > 0
 
+    ccl_supported_types = set(['int32', 'int64', 'float32', 'float64'])
+
+    # MXNet 1.4.x will kill test MPI process if error occurs during operation enqueue. Skip
+    # those tests for versions earlier than 1.5.0.
+    _skip_enqueue_errors = LooseVersion(mx.__version__) < LooseVersion('1.5.0')
+
+    HAS_MXNET = True
+except ImportError:
+    has_gpu = False
+    _skip_enqueue_errors = False
+    HAS_MXNET = False
+
+
+@pytest.mark.skipif(not HAS_MXNET, reason='MXNet unavailable')
 class MXTests(unittest.TestCase):
     """
     Tests for ops in horovod.mxnet.
@@ -51,6 +64,10 @@ class MXTests(unittest.TestCase):
         if 'CCL_ROOT' in os.environ:
            types = [t for t in types if t in ccl_supported_types]
         return types
+
+    def test_gpu_required(self):
+        if not has_gpu:
+            skip_or_fail_gpu_test(self, "No GPUs available")
 
     def test_horovod_allreduce(self):
         """Test that the allreduce correctly sums 1D, 2D, 3D tensors."""
@@ -258,7 +275,6 @@ class MXTests(unittest.TestCase):
             assert almost_equal(expected.asnumpy(), scaled.asnumpy(), atol=threshold), \
                 f'hvd.allreduce produces incorrect results for pre/post scaling: {hvd.rank()} {count} {dtype} {dim}'
 
-
     def test_horovod_allreduce_error(self):
         """Test that the allreduce raises an error if different ranks try to
            send tensors of different rank or dimension."""
@@ -370,7 +386,142 @@ class MXTests(unittest.TestCase):
             expected = tensor * (i + 1) * size
             assert same(sum.asnumpy(), expected.asnumpy())
 
-    def test_horovod_broadcast(self):
+    def test_horovod_grouped_allreduce(self):
+        """Test that the grouped allreduce correctly sums 1D, 2D, 3D tensors."""
+        hvd.init()
+        size = hvd.size()
+        dtypes = self.filter_supported_types(['int32',   'int64',
+                                              'float32', 'float64'])
+        dims = [1, 2, 3]
+        ctx = self._current_context()
+        count = 1
+        shapes = [(), (17), (17, 17), (17, 17, 17)]
+        for dtype, dim in itertools.product(dtypes, dims):
+            mx.random.seed(1234, ctx=ctx)
+
+            tensors = [mx.nd.random.uniform(-100, 100, shape=shapes[dim],
+                                          ctx=ctx) for _ in range(5)]
+
+            tensors = [tensor.astype(dtype) for tensor in tensors]
+
+            multiplied = [tensor * size for tensor in tensors]
+
+            summed = hvd.grouped_allreduce(tensors, average=False, name=str(count))
+
+            count += 1
+
+            # Threshold for floating point equality depends on number of
+            # ranks, since we're comparing against precise multiplication.
+            if size <= 3 or dtype in ['int32', 'int64']:
+                threshold = 0
+            elif size < 10:
+                threshold = 1e-4
+            elif size < 15:
+                threshold = 5e-4
+            else:
+                break
+
+            assert all([almost_equal(t1.asnumpy(), t2.asnumpy(), atol=threshold)
+                for t1, t2 in zip(summed, multiplied)]), \
+                f'hvd.grouped_allreduce produces incorrect results: {hvd.rank()} {count} {dtype} {dim}'
+
+    def test_horovod_grouped_allreduce_average(self):
+        """Test that the grouped allreduce correctly averages 1D, 2D, 3D tensors."""
+        hvd.init()
+        size = hvd.size()
+        dtypes = self.filter_supported_types(['int32',   'int64',
+                                              'float32', 'float64'])
+        dims = [1, 2, 3]
+        ctx = self._current_context()
+        count = 1
+        shapes = [(), (17), (17, 17), (17, 17, 17)]
+        for dtype, dim in itertools.product(dtypes, dims):
+            mx.random.seed(1234, ctx=ctx)
+
+            tensors = [mx.nd.random.uniform(-100, 100, shape=shapes[dim],
+                                          ctx=ctx) for _ in range(5)]
+
+            tensors = [tensor.astype(dtype) for tensor in tensors]
+            tensors = [tensor * size for tensor in tensors]
+            tensors = [tensor / size for tensor in tensors]
+
+            averaged = hvd.grouped_allreduce(tensors, average=True, name=str(count))
+
+            count += 1
+
+            # Threshold for floating point equality depends on number of
+            # ranks, since we're comparing against precise multiplication.
+            if size <= 3 or dtype in ['int32', 'int64']:
+                threshold = 0
+            elif size < 10:
+                threshold = 1e-4
+            elif size < 15:
+                threshold = 5e-4
+            else:
+                break
+
+            assert all([almost_equal(t1.asnumpy(), t2.asnumpy(), atol=threshold)
+                for t1, t2 in zip(averaged, tensors)]), \
+                f'hvd.grouped_allreduce produces incorrect results for average: {hvd.rank()} {count} {dtype} {dim}'
+
+    def test_horovod_grouped_allreduce_inplace(self):
+        """Test that the in-place grouped allreduce correctly sums 1D, 2D, 3D tensors."""
+        hvd.init()
+        size = hvd.size()
+        dtypes = self.filter_supported_types(['int32',   'int64',
+                                              'float32', 'float64'])
+        dims = [1, 2, 3]
+        ctx = self._current_context()
+        count = 1
+        shapes = [(), (17), (17, 17), (17, 17, 17)]
+        for dtype, dim in itertools.product(dtypes, dims):
+            mx.random.seed(1234, ctx=ctx)
+
+            tensors = [mx.nd.random.uniform(-100, 100, shape=shapes[dim],
+                                          ctx=ctx) for _ in range(5)]
+
+            tensors = [tensor.astype(dtype) for tensor in tensors]
+
+            multiplied = [tensor * size for tensor in tensors]
+
+            hvd.grouped_allreduce_(tensors, average=False, name=str(count))
+
+            count += 1
+
+            # Threshold for floating point equality depends on number of
+            # ranks, since we're comparing against precise multiplication.
+            if size <= 3 or dtype in ['int32', 'int64']:
+                threshold = 0
+            elif size < 10:
+                threshold = 1e-4
+            elif size < 15:
+                threshold = 5e-4
+            else:
+                break
+
+            assert all([almost_equal(t1.asnumpy(), t2.asnumpy(), atol=threshold)
+                for t1, t2 in zip(tensors, multiplied)]), \
+                f'hvd.grouped_allreduce_ produces incorrect results: {hvd.rank()} {count} {dtype} {dim}'
+
+    @unittest.skipUnless(has_gpu, "no gpu detected")
+    @pytest.mark.skipif(_skip_enqueue_errors,
+                        reason="Skip enqueue errors for MXNet version < 1.5.0")
+    def test_horovod_grouped_allreduce_cpu_gpu_error(self):
+        """Test that the grouped allreduce raises an error if the input tensor
+           list contains a mix of tensors on CPU and GPU."""
+        hvd.init()
+        local_rank = hvd.local_rank()
+        tensors = [mx.nd.ones(shape=[10], ctx=mx.gpu(local_rank) if i % 2
+                   else mx.cpu(local_rank)) for i in range(5)]
+
+        try:
+            outputs = hvd.grouped_allreduce(tensors)
+            mx.nd.waitall()
+            assert False, 'hvd.grouped_allreduce did not throw cpu-gpu error'
+        except (MXNetError, RuntimeError):
+            pass
+
+    def _horovod_broadcast(self):
         """Test that the broadcast correctly broadcasts 1D, 2D, 3D tensors."""
         hvd.init()
         rank = hvd.rank()

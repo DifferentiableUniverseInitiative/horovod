@@ -199,7 +199,7 @@ class SparkTests(unittest.TestCase):
 
     def test_task_service_wait_for_command_start_with_timeout(self):
         with spark_task_service(0) as (task, client, _):
-            tmout = timeout.Timeout(1.0, 'timed out waiting for {activity}')
+            tmout = timeout.Timeout(1.0, 'Timed out waiting for {activity}.')
             start = time.time()
             d = delay(lambda: client.run_command('true', {}), 0.5)
             task.wait_for_command_start(tmout)
@@ -209,10 +209,10 @@ class SparkTests(unittest.TestCase):
             d.join()
 
         with spark_task_service(0) as (task, client, _):
-            tmout = timeout.Timeout(1.0, 'timed out waiting for {activity}')
+            tmout = timeout.Timeout(1.0, 'Timed out waiting for {activity}.')
             start = time.time()
             d = delay(lambda: client.run_command('true', {}), 1.5)
-            with pytest.raises(Exception, match='^timed out waiting for command to run$'):
+            with pytest.raises(Exception, match='^Timed out waiting for command to run. Timeout after 1.0 seconds.$'):
                 task.wait_for_command_start(tmout)
             duration = time.time() - start
             self.assertGreaterEqual(duration, 1.0)
@@ -581,7 +581,7 @@ class SparkTests(unittest.TestCase):
             return 0
 
         def mpi_impl_flags(tcp, env=None):
-            return ["--mock-mpi-impl-flags"], ["--mock-mpi-binding-args"]
+            return ["--mock-mpi-impl-flags"], ["--mock-mpi-binding-args"], None
 
         def gloo_exec_command_fn(driver_addresses, key, settings, env):
             def _exec_command(command, alloc_info, event):
@@ -625,7 +625,7 @@ class SparkTests(unittest.TestCase):
             return 1
 
         def mpi_impl_flags(tcp, env=None):
-            return ["--mock-mpi-impl-flags"], ["--mock-mpi-binding-args"]
+            return ["--mock-mpi-impl-flags"], ["--mock-mpi-binding-args"], None
 
         def exception(*args, **argv):
             raise Exception('Test Exception')
@@ -647,7 +647,7 @@ class SparkTests(unittest.TestCase):
                 self.assertEqual(str(e.value), 'Test Exception')
 
                 # call the mocked _get_mpi_implementation_flags method
-                mpi_flags, binding_args = horovod.runner.mpi_run._get_mpi_implementation_flags(False)
+                mpi_flags, binding_args, _ = horovod.runner.mpi_run._get_mpi_implementation_flags(False)
                 self.assertIsNotNone(mpi_flags)
                 expected_command = ('mpirun '
                                     '--allow-run-as-root --tag-output '

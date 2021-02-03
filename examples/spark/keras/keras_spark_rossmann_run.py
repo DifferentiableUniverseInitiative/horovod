@@ -178,7 +178,7 @@ if __name__ == '__main__':
 
         # Days & weeks of promotion, cap to 25 weeks.
         df = df.withColumn('Promo2Since',
-                           F.expr('date_add(format_string("%s-01-01", Promo2SinceYear), (Promo2SinceWeek - 1) * 7)'))
+                           F.expr('date_add(format_string("%s-01-01", Promo2SinceYear), (cast(Promo2SinceWeek as int) - 1) * 7)'))
         df = df.withColumn('Promo2Days',
                            F.when(df.Promo2SinceYear > 1900,
                                   F.greatest(F.lit(0), F.least(F.lit(25 * 7), F.datediff(df.Date, df.Promo2Since))))
@@ -435,7 +435,7 @@ if __name__ == '__main__':
             # Horovod: using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
             # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
             # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.
-            hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=5, initial_lr=scaled_lr, verbose=verbose),
+            hvd.callbacks.LearningRateWarmupCallback(initial_lr=scaled_lr, warmup_epochs=5, verbose=verbose),
 
             # Reduce LR if the metric is not improved for 10 epochs, and stop training
             # if it has not improved for 20 epochs.
