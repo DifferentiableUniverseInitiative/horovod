@@ -21,6 +21,7 @@ import inspect
 import itertools
 import os
 import platform
+import sys
 import unittest
 import warnings
 import time
@@ -36,12 +37,14 @@ import torch.nn.functional as F
 
 import horovod.torch as hvd
 
-from common import mpi_env_rank_and_size, temppath
+sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir, 'utils'))
+
+from common import mpi_env_rank_and_size, skip_or_fail_gpu_test, temppath
 
 _1_5_api = LooseVersion(torch.__version__) >= LooseVersion('1.5.0')
 
-ccl_supported_types = set([torch.CharTensor, torch.IntTensor,
-                           torch.LongTensor, torch.FloatTensor, 
+ccl_supported_types = set([torch.ByteTensor, torch.CharTensor, torch.ShortTensor,
+                           torch.IntTensor, torch.LongTensor, torch.FloatTensor,
                            torch.DoubleTensor])
 
 
@@ -75,6 +78,11 @@ class TorchTests(unittest.TestCase):
            types = [t for t in types if t in ccl_supported_types]
         return types
 
+    def test_gpu_required(self):
+        if not torch.cuda.is_available():
+            skip_or_fail_gpu_test(self, "No GPUs available")
+
+    @pytest.mark.skipif(platform.system() == 'Darwin', reason='Reinit not supported on macOS')
     def test_horovod_reinit(self):
         """Test that Horovod can init -> shutdown -> init successfully."""
         mpi_rank, _ = mpi_env_rank_and_size()
@@ -594,6 +602,179 @@ class TorchTests(unittest.TestCase):
                             "gradient %s differs from expected %s, "
                             "error: %s" % (grad_out, expected, str(err)))
 
+    def test_horovod_grouped_allreduce(self):
+        """Test that the grouped allreduce correctly sums 1D, 2D, 3D tensors."""
+        hvd.init()
+        size = hvd.size()
+        dtypes = self.filter_supported_types([torch.IntTensor, torch.LongTensor,
+                     torch.FloatTensor, torch.DoubleTensor, torch.HalfTensor])
+        if torch.cuda.is_available():
+            dtypes += [torch.cuda.IntTensor, torch.cuda.LongTensor,
+                       torch.cuda.FloatTensor, torch.cuda.DoubleTensor,
+                       torch.cuda.HalfTensor]
+        dims = [1, 2, 3]
+        for dtype, dim in itertools.product(dtypes, dims):
+            torch.manual_seed(1234)
+            tensors = [torch.FloatTensor(*([17] * dim)).random_(-100, 100) for _ in range(5)]
+            tensors = [self.cast_and_place(tensor, dtype) for tensor in tensors]
+            summed = hvd.grouped_allreduce(tensors, average=False)
+            tensors, summed = zip(*[self.convert_cpu_fp16_to_fp32(t, s) for t, s in zip(tensors, summed)])
+            multiplied = [tensor * size for tensor in tensors]
+
+            # Threshold for floating point equality depends on number of
+            # ranks, since we're comparing against precise multiplication.
+            if size <= 3 or dtype in [torch.IntTensor, torch.LongTensor,
+                                      torch.cuda.IntTensor, torch.cuda.LongTensor]:
+                threshold = 0
+            elif size < 10:
+                threshold = 1e-4
+            elif size < 15:
+                threshold = 5e-4
+            else:
+                break
+
+            assert all([torch.allclose(t1, t2, threshold) for t1, t2 in zip(summed, multiplied)]), \
+                'hvd.grouped_allreduce produces incorrect results'
+
+    def test_horovod_grouped_allreduce_average(self):
+        """Test that the grouped allreduce correctly averages 1D, 2D, 3D tensors."""
+        hvd.init()
+        size = hvd.size()
+        dtypes = self.filter_supported_types([torch.IntTensor, torch.LongTensor,
+                     torch.FloatTensor, torch.DoubleTensor, torch.HalfTensor])
+        if torch.cuda.is_available():
+            dtypes += [torch.cuda.IntTensor, torch.cuda.LongTensor,
+                       torch.cuda.FloatTensor, torch.cuda.DoubleTensor,
+                       torch.cuda.HalfTensor]
+        dims = [1, 2, 3]
+        for dtype, dim in itertools.product(dtypes, dims):
+            torch.manual_seed(1234)
+            tensors = [torch.FloatTensor(*([17] * dim)).random_(-100, 100) for _ in range(5)]
+            tensors = [self.cast_and_place(tensor, dtype) for tensor in tensors]
+            averaged = hvd.grouped_allreduce(tensors, average=True)
+            tensors, averaged = zip(*[self.convert_cpu_fp16_to_fp32(t, m) for t, m in zip(tensors, averaged)])
+
+            # Threshold for floating point equality depends on number of
+            # ranks, since we're comparing against precise multiplication.
+            if size <= 3 or dtype in [torch.IntTensor, torch.LongTensor,
+                                      torch.cuda.IntTensor, torch.cuda.LongTensor]:
+                threshold = 0
+            elif size < 10:
+                threshold = 1e-4
+            elif size < 15:
+                threshold = 5e-4
+            else:
+                break
+
+            assert all([torch.allclose(t1, t2, threshold) for t1, t2 in zip(averaged, tensors)]), \
+                'hvd.grouped_allreduce produces incorrect results for average'
+
+    def test_horovod_grouped_allreduce_inplace(self):
+        """Test that the grouped allreduce correctly sums 1D, 2D, 3D tensors."""
+        hvd.init()
+        size = hvd.size()
+        dtypes = self.filter_supported_types([torch.IntTensor, torch.LongTensor,
+                     torch.FloatTensor, torch.DoubleTensor, torch.HalfTensor])
+        if torch.cuda.is_available():
+            dtypes += [torch.cuda.IntTensor, torch.cuda.LongTensor,
+                       torch.cuda.FloatTensor, torch.cuda.DoubleTensor,
+                       torch.cuda.HalfTensor]
+        dims = [1, 2, 3]
+        for dtype, dim in itertools.product(dtypes, dims):
+            torch.manual_seed(1234)
+            tensors = [torch.FloatTensor(*([17] * dim)).random_(-100, 100) for _ in range(5)]
+            multiplied = [self.cast_and_place(tensor * size, dtype) for tensor in tensors]
+            tensors = [self.cast_and_place(tensor, dtype) for tensor in tensors]
+            hvd.grouped_allreduce_(tensors, average=False)
+            tensors, multiplied = zip(*[self.convert_cpu_fp16_to_fp32(t, m) for t, m in zip(tensors, multiplied)])
+
+            # Threshold for floating point equality depends on number of
+            # ranks, since we're comparing against precise multiplication.
+            if size <= 3 or dtype in [torch.IntTensor, torch.LongTensor,
+                                      torch.cuda.IntTensor, torch.cuda.LongTensor]:
+                threshold = 0
+            elif size < 10:
+                threshold = 1e-4
+            elif size < 15:
+                threshold = 5e-4
+            else:
+                break
+
+            assert all([torch.allclose(t1, t2, threshold) for t1, t2 in zip(tensors, multiplied)]), \
+                'hvd.grouped_allreduce_ produces incorrect results'
+
+    def test_horovod_grouped_allreduce_cpu_gpu_error(self):
+        """Test that the grouped allreduce raises an error if the input tensor
+        list contains a mix of tensors on CPU and GPU."""
+        # Only do this test if there are GPUs available.
+        if not torch.cuda.is_available():
+            self.skipTest("No GPUs available")
+
+        hvd.init()
+        tensors = [torch.FloatTensor(10) if i % 2 else torch.cuda.FloatTensor(10)  for i in range(5)]
+        try:
+            hvd.grouped_allreduce(tensors, average=False)
+            assert False, 'hvd.allreduce did not throw error'
+        except (torch.FatalError, RuntimeError):
+            pass
+
+    def test_horovod_grouped_allreduce_grad(self):
+        """Test the correctness of the grouped allreduce gradient."""
+        hvd.init()
+        size = hvd.size()
+        # Only Tensors of floating point dtype can require gradients
+        dtypes = [torch.FloatTensor, torch.DoubleTensor]
+        if torch.cuda.is_available():
+            dtypes += [torch.cuda.FloatTensor, torch.cuda.DoubleTensor, torch.cuda.HalfTensor]
+        dims = [1, 2, 3]
+        for dtype, dim in itertools.product(dtypes, dims):
+            torch.manual_seed(1234)
+            tensors = [torch.FloatTensor(*([17] * dim)).random_(-100, 100) for _ in range(5)]
+            tensors = [self.cast_and_place(tensor, dtype) for tensor in tensors]
+            for tensor in tensors:
+                tensor.requires_grad_()
+            summed = hvd.grouped_allreduce(tensors, average=False)
+
+            for s in summed:
+                s.backward(self.cast_and_place(torch.ones([17] * dim), dtype))
+
+            grads_out = [tensor.grad.data.cpu().numpy() for tensor in tensors]
+
+            expected = np.ones([17] * dim) * size
+            for grad_out in grads_out:
+                err = np.linalg.norm(expected - grad_out)
+                self.assertLess(err, 0.00000001,
+                                "gradient %s differs from expected %s, "
+                                "error: %s" % (grad_out, expected, str(err)))
+
+    def test_horovod_allreduce_grad_average(self):
+        """Test the correctness of the allreduce averaged gradient."""
+        hvd.init()
+        # Only Tensors of floating point dtype can require gradients
+        dtypes = [torch.FloatTensor, torch.DoubleTensor]
+        if torch.cuda.is_available():
+            dtypes += [torch.cuda.FloatTensor, torch.cuda.DoubleTensor, torch.cuda.HalfTensor]
+        dims = [1, 2, 3]
+        for dtype, dim in itertools.product(dtypes, dims):
+            torch.manual_seed(1234)
+            tensors = [torch.FloatTensor(*([17] * dim)).random_(-100, 100) for _ in range(5)]
+            tensors = [self.cast_and_place(tensor, dtype) for tensor in tensors]
+            for tensor in tensors:
+                tensor.requires_grad_()
+            summed = hvd.grouped_allreduce(tensors, average=True)
+
+            for s in summed:
+                s.backward(self.cast_and_place(torch.ones([17] * dim), dtype))
+
+            grads_out = [tensor.grad.data.cpu().numpy() for tensor in tensors]
+
+            expected = np.ones([17] * dim)
+            for grad_out in grads_out:
+                err = np.linalg.norm(expected - grad_out)
+                self.assertLess(err, 0.00000001,
+                                "gradient %s differs from expected %s, "
+                                "error: %s" % (grad_out, expected, str(err)))
+
     def test_horovod_allgather(self):
         """Test that the allgather correctly gathers 1D, 2D, 3D tensors."""
         hvd.init()
@@ -1006,9 +1187,9 @@ class TorchTests(unittest.TestCase):
         if hvd.nccl_built() and hvd.nccl_built() < 2700:
             self.skipTest("NCCL-based Alltoall requires NCCL version >= 2.7.0.")
 
-        dtypes = [torch.ByteTensor, torch.CharTensor, torch.ShortTensor,
-                  torch.IntTensor, torch.LongTensor, torch.FloatTensor, torch.DoubleTensor,
-                  torch.HalfTensor]
+        dtypes = self.filter_supported_types([torch.ByteTensor, torch.CharTensor, torch.ShortTensor,
+                                              torch.IntTensor, torch.LongTensor, torch.FloatTensor,
+                                              torch.DoubleTensor, torch.HalfTensor])
         if torch.cuda.is_available():
             dtypes += [torch.cuda.ByteTensor, torch.cuda.CharTensor, torch.cuda.ShortTensor,
                        torch.cuda.IntTensor, torch.cuda.LongTensor,
@@ -1044,9 +1225,9 @@ class TorchTests(unittest.TestCase):
         if hvd.nccl_built() and hvd.nccl_built() < 2700:
             self.skipTest("NCCL-based Alltoall requires NCCL version >= 2.7.0.")
 
-        dtypes = [torch.ByteTensor, torch.CharTensor, torch.ShortTensor,
-                  torch.IntTensor, torch.LongTensor, torch.FloatTensor, torch.DoubleTensor,
-                  torch.HalfTensor]
+        dtypes = self.filter_supported_types([torch.ByteTensor, torch.CharTensor, torch.ShortTensor,
+                                              torch.IntTensor, torch.LongTensor, torch.FloatTensor,
+                                              torch.DoubleTensor, torch.HalfTensor])
         if torch.cuda.is_available():
             dtypes += [torch.cuda.ByteTensor, torch.cuda.CharTensor, torch.cuda.ShortTensor,
                        torch.cuda.IntTensor, torch.cuda.LongTensor,
@@ -1337,12 +1518,10 @@ class TorchTests(unittest.TestCase):
             opt_param_values = get_optimizer_param_values(optimizer)
             for name, opt_param_value in opt_param_values:
                 is_tensor = torch.is_tensor(opt_param_value)
-                if not is_tensor:
-                    t = type(opt_param_value)
-                    opt_param_value = torch.Tensor([opt_param_value])
-                hvd.broadcast_(opt_param_value, root_rank=0)
-                if not is_tensor:
-                    opt_param_value = t(opt_param_value.cpu().numpy()[0])
+                if is_tensor:
+                    hvd.broadcast_(opt_param_value, root_rank=0)
+                else:
+                    opt_param_value = hvd.broadcast_object(opt_param_value, name=name)
                 opt_param_values_updated.append((name, opt_param_value))
             opt_param_values = opt_param_values_updated
 
@@ -1372,13 +1551,8 @@ class TorchTests(unittest.TestCase):
                 self.assertTrue(
                     (model_param_value == model_param_value_after).all())
 
+            expected_tensors = hvd.broadcast_object(len(optimizer.state_dict()['state'].values()))
             hvd.broadcast_optimizer_state(optimizer, root_rank=0)
-
-            expected_tensors = 4
-            if 'momentum' not in opt_params and opt_class == torch.optim.SGD:
-                # SGD only maintains state when momentum is specified, otherwise
-                # it does not populate the state dict, so it will contain no tensors.
-                expected_tensors = 0
             self.assertEqual(len(optimizer.state_dict()['state'].values()), expected_tensors)
 
             opt_param_values_after = get_optimizer_param_values(optimizer)
@@ -1910,8 +2084,8 @@ class TorchTests(unittest.TestCase):
         rank = hvd.rank()
         size = hvd.size()
 
-        dtypes = self.filter_supported_types([torch.IntTensor, torch.LongTensor,
-                     torch.FloatTensor, torch.DoubleTensor])
+        dtypes = [torch.IntTensor, torch.LongTensor,
+                  torch.FloatTensor, torch.DoubleTensor]
         if torch.cuda.is_available():
             dtypes += [torch.cuda.IntTensor, torch.cuda.LongTensor,
                        torch.cuda.FloatTensor, torch.cuda.DoubleTensor,
@@ -2079,7 +2253,7 @@ class TorchTests(unittest.TestCase):
             assert torch.allclose(hvd.allreduce(sync_bn.bias.grad, name='sync_bn.bias.grad'), bn.bias.grad, 1e-6)
             assert torch.allclose(hvd.allreduce(ts1.grad, name='ts1.grad'), ts2.grad, 1e-6)
 
-    @pytest.mark.skip(reason='https://github.com/horovod/horovod/issues/2330')
+    @pytest.mark.skip(reason='https://github.com/horovod/horovod/issues/2496')
     def test_timeline_api(self):
         hvd.init()
 
@@ -2088,9 +2262,9 @@ class TorchTests(unittest.TestCase):
                 with open(fname, 'r') as timeline_file:
                     timeline_text = timeline_file.read()
                     assert 'allreduce.test_allreduce' in timeline_text, timeline_text
+                    assert 'start_time_since_epoch_in_micros' in timeline_text, timeline_text
                     assert 'NEGOTIATE_ALLREDUCE' in timeline_text, timeline_text
                     assert 'ALLREDUCE' in timeline_text, timeline_text
-                    assert 'start_time_since_epoch_in_micros' in timeline_text, timeline_text
                     json_obj = json.loads(timeline_text)
                     assert json_obj is not None
                     if check_cycle:
@@ -2098,7 +2272,7 @@ class TorchTests(unittest.TestCase):
 
         with temppath() as fname1:
             hvd.start_timeline(fname1, mark_cycles=True)
-            hvd.allreduce(torch.tensor([1, 2, 3], dtype=torch.float32), name='test_allreduce')
+            hvd.allreduce(torch.tensor([1, 2, 3], dtype=torch.float32), name='test_allreduce').numpy();
             # stop timeline will immediately stop events to be registered in timeline. We are providing some time
             # before calling stop so that mark_cycle events can be registered in timeline file.
             time.sleep(0.2)
@@ -2109,7 +2283,8 @@ class TorchTests(unittest.TestCase):
         # Test resuming with a different filename.
         with temppath() as fname2:
             hvd.start_timeline(fname2, mark_cycles=True)
-            hvd.allreduce(torch.tensor([1, 2, 3], dtype=torch.float32), name='test_allreduce')
+            time.sleep(0.2)
+            hvd.allreduce(torch.tensor([1, 2, 3], dtype=torch.float32), name='test_allreduce').numpy();
             # stop timeline will immediately stop events to be registered in timeline. We are providing some time
             # before calling stop so that cycle events can be registered in timeline file.
             time.sleep(0.2)
@@ -2120,7 +2295,8 @@ class TorchTests(unittest.TestCase):
         with temppath() as fname3:
             # Make sure that last stop timeline has been processed.
             hvd.start_timeline(fname3, mark_cycles=False)
-            hvd.allreduce(torch.tensor([1, 2, 3], dtype=torch.float32), name='test_allreduce')
+            time.sleep(0.2)
+            hvd.allreduce(torch.tensor([1, 2, 3], dtype=torch.float32), name='test_allreduce').numpy();
             # stop timeline will immediately stop events to be registered in timeline. We are providing some time
             # before calling stop so that events can be registered in timeline file.
             hvd.stop_timeline()
@@ -2130,7 +2306,8 @@ class TorchTests(unittest.TestCase):
         with temppath() as fname4:
             # Make sure that last stop timeline has been processed.
             hvd.start_timeline(fname4, mark_cycles=True)
-            hvd.allreduce(torch.tensor([1, 2, 3], dtype=torch.float32), name='test_allreduce')
+            time.sleep(0.2)
+            hvd.allreduce(torch.tensor([1, 2, 3], dtype=torch.float32), name='test_allreduce').numpy();
             # stop timeline will immediately stop events to be registered in timeline. We are providing some time
             # before calling stop so that cycle events can be registered in timeline file.
             time.sleep(0.2)
@@ -2141,7 +2318,10 @@ class TorchTests(unittest.TestCase):
             # Make sure that last stop timeline has been processed.
             hvd.start_timeline(fname5, mark_cycles=False)
             hvd.start_timeline(fname5, mark_cycles=False)
-            hvd.allreduce(torch.tensor([1, 2, 3], dtype=torch.float32), name='test_allreduce')
+            time.sleep(0.2)
+            hvd.allreduce(torch.tensor([1, 2, 3], dtype=torch.float32), name='test_allreduce').numpy()
+            hvd.allreduce(torch.tensor([1, 2, 3], dtype=torch.float32), name='test_allreduce').numpy()
+            time.sleep(0.2)
             hvd.stop_timeline()
             check_file(fname5, check_cycle=False)
 

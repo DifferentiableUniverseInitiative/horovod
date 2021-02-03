@@ -14,6 +14,9 @@ if(NOT PYTORCH_FOUND)
     return()
 endif()
 
+# Append version number into metadata
+file(APPEND "${CMAKE_LIBRARY_OUTPUT_DIRECTORY_ROOT}/metadata.json" "\"pytorch\": \"${Pytorch_VERSION}\",\n")
+
 if (HAVE_CUDA AND NOT Pytorch_CUDA)
     message(FATAL_ERROR "Horovod build with GPU support was requested but this PyTorch installation does not support CUDA.")
 elseif (Pytorch_CUDA AND NOT HAVE_CUDA)
@@ -27,6 +30,7 @@ endif()
 if (Pytorch_ROCM)
     # Hipify extension code
     execute_process(COMMAND ${PY_EXE} -c "from torch.utils.hipify import hipify_python; hipify_python.hipify(project_directory='${PROJECT_SOURCE_DIR}/horovod', output_directory='${PROJECT_SOURCE_DIR}/horovod', includes=('torch/*.cc','torch/*.h'), show_detailed=True, is_pytorch_extension=True)")
+    execute_process(COMMAND ${PY_EXE} -c "from torch.utils import hipify; print(True) if hasattr(hipify, '__version__') else print(False)" OUTPUT_VARIABLE HIPIFY_HAS_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
 endif()
 
 include_directories(SYSTEM ${Pytorch_INCLUDE_DIRS})
@@ -57,15 +61,26 @@ if(NOT Pytorch_VERSION VERSION_LESS "1.3.0")
 endif()
 
 # PyTorch SOURCES
+# Later versions of PyTorch that use ROCm's hipify step will rename files.
+if(Pytorch_ROCM AND "${HIPIFY_HAS_VERSION}" STREQUAL "True")
+list(APPEND PYTORCH_SOURCES "${PROJECT_SOURCE_DIR}/horovod/torch/handle_manager.cc"
+                            "${PROJECT_SOURCE_DIR}/horovod/torch/ready_event_hip.cc"
+                            "${PROJECT_SOURCE_DIR}/horovod/torch/hip_util.cc"
+                            "${PROJECT_SOURCE_DIR}/horovod/torch/mpi_ops_v2_hip.cc"
+                            "${PROJECT_SOURCE_DIR}/horovod/torch/adapter_v2.cc")
+else()
 list(APPEND PYTORCH_SOURCES "${PROJECT_SOURCE_DIR}/horovod/torch/handle_manager.cc"
                             "${PROJECT_SOURCE_DIR}/horovod/torch/ready_event.cc"
                             "${PROJECT_SOURCE_DIR}/horovod/torch/cuda_util.cc"
                             "${PROJECT_SOURCE_DIR}/horovod/torch/mpi_ops_v2.cc"
                             "${PROJECT_SOURCE_DIR}/horovod/torch/adapter_v2.cc")
+endif()
 
 # Create library
 set_output_dir()
 add_library(${PYTORCH_TARGET_LIB} SHARED ${SOURCES} ${PYTORCH_SOURCES})
+target_include_directories(${PYTORCH_TARGET_LIB} PRIVATE "${EIGEN_INCLUDE_PATH}")
+target_include_directories(${PYTORCH_TARGET_LIB} PRIVATE "${FLATBUFFERS_INCLUDE_PATH}")
 target_link_libraries(${PYTORCH_TARGET_LIB} ${LINKER_LIBS} ${PYTORCH_LINKER_LIBS})
 set_target_properties(${PYTORCH_TARGET_LIB} PROPERTIES SUFFIX "${Python_SUFFIX}")
 set_target_properties(${PYTORCH_TARGET_LIB} PROPERTIES PREFIX "")

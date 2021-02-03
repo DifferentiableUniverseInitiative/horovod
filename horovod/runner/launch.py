@@ -20,6 +20,7 @@ import io
 import os
 import sys
 import textwrap
+import warnings
 
 import yaml
 
@@ -49,6 +50,8 @@ CACHE_STALENESS_THRESHOLD_MINUTES = 60
 
 # Number of attempts for sshing into the hosts
 SSH_ATTEMPTS = 5
+
+SSH_CONNECT_TIMEOUT_S = 10
 
 
 @cache.use_cache()
@@ -83,7 +86,8 @@ def _check_all_hosts_ssh_successful(host_addresses, ssh_port=None, ssh_identity_
     args_list = [[get_remote_command(local_command='true',
                                      host=host_address,
                                      port=ssh_port,
-                                     identity_file=ssh_identity_file)]
+                                     identity_file=ssh_identity_file,
+                                     timeout_s=SSH_CONNECT_TIMEOUT_S)]
                  for host_address in host_addresses]
     ssh_exit_codes = \
         threads.execute_function_multithreaded(exec_command,
@@ -209,6 +213,32 @@ def make_override_false_action(override_args):
     return make_override_bool_action(override_args, False)
 
 
+def make_deprecated_bool_action(override_args, bool_value, replacement_option):
+    class StoreOverrideBoolAction(argparse.Action):
+        def __init__(self,
+                     option_strings,
+                     dest,
+                     required=False,
+                     help=None):
+            super(StoreOverrideBoolAction, self).__init__(
+                option_strings=option_strings,
+                dest=dest,
+                const=bool_value,
+                nargs=0,
+                default=None,
+                required=required,
+                help=help)
+
+        def __call__(self, parser, args, values, option_string=None):
+            deprecated_option = '|'.join(self.option_strings)
+            warnings.warn(f'Argument {deprecated_option} has been replaced by {replacement_option} and will be removed in v0.21.0',
+                          DeprecationWarning)
+            override_args.add(self.dest)
+            setattr(args, self.dest, self.const)
+
+    return StoreOverrideBoolAction
+
+
 def parse_args():
     override_args = set()
 
@@ -276,12 +306,12 @@ def parse_args():
                               help='Fusion buffer threshold in MB. This is the maximum amount of '
                                    'tensor data that can be fused together into a single batch '
                                    'during allreduce / allgather. Setting 0 disables tensor fusion. '
-                                   '(default: 64)')
+                                   '(default: 128)')
     group_params.add_argument('--cycle-time-ms', action=make_override_action(override_args), type=float,
                               help='Cycle time in ms. This is the delay between each tensor fusion '
                                    'cycle. The larger the cycle time, the more batching, but the '
                                    'greater latency between each allreduce / allgather operations. '
-                                   '(default: 5')
+                                   '(default: 1')
     group_params.add_argument('--cache-capacity', action=make_override_action(override_args), type=int,
                               help='Maximum number of tensor names that will be cached to reduce amount '
                                    'of coordination required between workers before performing allreduce / '
@@ -323,24 +353,24 @@ def parse_args():
                                      'score of the trial. The last row will always contain the best value '
                                      'found.')
     group_autotune.add_argument('--autotune-warmup-samples', action=make_override_action(override_args),
-                                type=int, default=3,
+                                type=int,
                                 help='Number of samples to discard before beginning the optimization process '
                                      'during autotuning. Performance during the first few batches can be '
-                                     'affected by initialization and cache warmups. (default: %(default)s)')
+                                     'affected by initialization and cache warmups. (default: 3')
     group_autotune.add_argument('--autotune-steps-per-sample', action=make_override_action(override_args),
-                                type=int, default=10,
+                                type=int,
                                 help='Number of steps (approximate) to record before observing a sample. The sample '
                                      'score is defined to be the median score over all batches within the sample. The '
                                      'more batches per sample, the less variance in sample scores, but the longer '
-                                     'autotuning will take. (default: %(default)s)')
+                                     'autotuning will take. (default: 10')
     group_autotune.add_argument('--autotune-bayes-opt-max-samples', action=make_override_action(override_args),
-                                type=int, default=20,
+                                type=int,
                                 help='Maximum number of samples to collect for each Bayesian optimization process. '
-                                     '(default: %(default)s)')
+                                     '(default: 20')
     group_autotune.add_argument('--autotune-gaussian-process-noise', action=make_override_action(override_args),
-                                type=float, default=0.8,
+                                type=float,
                                 help='Regularization value [0, 1] applied to account for noise in samples. '
-                                     '(default: %(default)s)')
+                                     '(default: 0.8')
 
     group_elastic = parser.add_argument_group('elastic arguments')
     group_elastic.add_argument('--min-np', action='store', dest='min_np', type=int,
@@ -383,12 +413,12 @@ def parse_args():
     group_stall_check_enabled.add_argument('--stall-check', dest='no_stall_check',
                                            action=make_override_false_action(override_args), help=argparse.SUPPRESS)
     group_stall_check.add_argument('--stall-check-warning-time-seconds', action=make_override_action(override_args),
-                                   type=int, default=60,
-                                   help='Seconds until the stall warning is logged to stderr. (default: %(default)s)')
+                                   type=int,
+                                   help='Seconds until the stall warning is logged to stderr. (default: 60')
     group_stall_check.add_argument('--stall-check-shutdown-time-seconds', action=make_override_action(override_args),
-                                   type=int, default=0,
+                                   type=int,
                                    help='Seconds until Horovod is shutdown due to stall. Shutdown will only take '
-                                        'place if this value is greater than the warning time. (default: %(default)s)')
+                                        'place if this value is greater than the warning time. (default: 0')
 
     group_library_options = parser.add_argument_group('library arguments')
     group_mpi_threads_disable = group_library_options.add_mutually_exclusive_group()
@@ -409,27 +439,40 @@ def parse_args():
                                        help='Process binding arguments. Default is socket for Spectrum MPI '
                                             'and no binding for other cases. e.g. --binding-args="--rankfile myrankfile"')
     group_library_options.add_argument('--num-nccl-streams', action=make_override_action(override_args),
-                                       type=int, default=1,
+                                       type=int,
                                        help='Number of NCCL streams. Only applies when running with NCCL support. '
                                             '(default: %(default)s)')
-    group_library_options.add_argument('--ccl-bgt-affinity', action=make_override_action(override_args),
-                                       type=int, default=0,
-                                       help='CCL background thread affinity. Only applies when running with CCL '
-                                            'support. (default: %(default)s)')
+    group_library_options.add_argument('--thread-affinity', action=make_override_action(override_args),
+                                       type=int,
+                                       help='Horovod background thread affinity. '
+                                            '(default: 0')
     group_library_options.add_argument('--gloo-timeout-seconds', action=make_override_action(override_args),
-                                       type=int, default=30,
+                                       type=int,
                                        help='Timeout in seconds for Gloo operations to complete. '
-                                            '(default: %(default)s)')
+                                            '(default: 30')
 
     group_logging = parser.add_argument_group('logging arguments')
     group_logging.add_argument('--log-level', action=make_override_action(override_args),
                                choices=config_parser.LOG_LEVELS,
                                help='Minimum level to log to stderr from the Horovod backend. (default: WARNING).')
     group_logging_timestamp = group_logging.add_mutually_exclusive_group()
-    group_logging_timestamp.add_argument('--log-hide-timestamp', action=make_override_true_action(override_args),
-                                         help='Hide the timestamp from Horovod log messages.')
-    group_logging_timestamp.add_argument('--no-log-hide-timestamp', dest='log_hide_timestamp',
-                                         action=make_override_false_action(override_args), help=argparse.SUPPRESS)
+    group_logging_timestamp.add_argument('--log-with-timestamp', 
+                                         action=make_override_true_action(override_args),
+                                         help=argparse.SUPPRESS)
+    group_logging_timestamp.add_argument('--log-without-timestamp', dest='log_with_timestamp',
+                                         action=make_override_false_action(override_args), 
+                                         help='Hide the timestamp from Horovod internal log messages.')
+    group_logging_timestamp.add_argument('-prefix-timestamp', '--prefix-output-with-timestamp', action='store_true',
+                                         dest='prefix_output_with_timestamp',
+                                         help='Timestamp each line of output to stdout, stderr, and stddiag.')
+    group_logging_timestamp.add_argument('--log-hide-timestamp', 
+                                         dest='log_with_timestamp',
+                                         action=make_deprecated_bool_action(override_args, False, '--log-without-timestamp'),
+                                         help=argparse.SUPPRESS)
+    group_logging_timestamp.add_argument('--no-log-hide-timestamp', 
+                                         dest='log_with_timestamp',
+                                         action=make_deprecated_bool_action(override_args, True, '--log-with-timestamp'),
+                                         help=argparse.SUPPRESS)                                     
 
     group_hosts_parent = parser.add_argument_group('host arguments')
     group_hosts = group_hosts_parent.add_mutually_exclusive_group()
@@ -506,7 +549,8 @@ def _run_static(args):
                                      hosts=args.hosts,
                                      output_filename=args.output_filename,
                                      run_func_mode=args.run_func is not None,
-                                     nics=args.nics)
+                                     nics=args.nics,
+                                     prefix_output_with_timestamp=args.prefix_output_with_timestamp)
 
     # This cache stores the results of checks performed by horovod
     # during the initialization step. It can be disabled by setting
@@ -610,7 +654,8 @@ def _run_elastic(args):
                                                 start_timeout=tmout,
                                                 output_filename=args.output_filename,
                                                 run_func_mode=args.run_func is not None,
-                                                nics=args.nics)
+                                                nics=args.nics,
+                                                prefix_output_with_timestamp=args.prefix_output_with_timestamp)
 
     if not gloo_built(verbose=(settings.verbose >= 2)):
         raise ValueError('Gloo support is required to use elastic training, but has not been built.  Ensure CMake is '
