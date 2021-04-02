@@ -1,0 +1,10 @@
+Loading flatbuffers/1.11.0
+  Loading requirement: gcc/9.1.0
+Loading boost/1.70.0
+  Loading requirement: intel-compilers/19.0.4
+Loading tensorflow-gpu/py3/2.3.1
+  Loading requirement: cuda/10.1.2 nccl/2.5.6-2-cuda cudnn/7.6.5.32-cuda-10.1
+    openmpi/4.0.2-cuda
++ srun -u --mpi=pmi2 -o mtf_%t.log python /gpfswork/idris/hpe/shpe033/meshtensorflow_project/test/test_mtf.py
+srun: Job step aborted: Waiting up to 62 seconds for job step to finish.
+slurmstepd: error: *** JOB 577303 ON r10i7n4 CANCELLED AT 2021-03-30T15:36:49 DUE TO TIME LIMIT ***
