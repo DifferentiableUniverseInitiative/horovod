@@ -199,7 +199,11 @@ private:
                       Communicator_type* reduction_comms,
                       HorovodGlobalState* global_state) {
     int per_element_size =
+#if HAVE_SUBCOMM
+        global_state->controller[0]->GetTypeSize(horovod_datatype);
+#else
         global_state->controller->GetTypeSize(horovod_datatype);
+#endif
     int rank = GetLocalRankWithComm(communicator);
     int size = GetSizeWithComm(communicator);
 
@@ -344,7 +348,11 @@ private:
                                    HorovodGlobalState* global_state) {
     static double sqrt_double_min = std::sqrt(DBL_MIN);
     int per_element_size =
+#if HAVE_MPI
+        global_state->controller[0]->GetTypeSize(horovod_datatype);
+#else
         global_state->controller->GetTypeSize(horovod_datatype);
+#endif
     int bytesSoFar = 0;
     for (size_t i = 0; i < tensor_counts.size(); i++) {
       double dotProduct = 0.;

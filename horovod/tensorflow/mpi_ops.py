@@ -73,6 +73,13 @@ ddl_built = _basics.ddl_built
 ccl_built = _basics.ccl_built
 cuda_built = _basics.cuda_built
 rocm_built = _basics.rocm_built
+wrapper_dummy_fn = _basics.wrapper_dummy_fn
+
+# NCCL Sub-Communicators management.
+get_process_groups = _basics.get_process_groups
+nccl_create_process_groups = _basics.nccl_create_process_groups
+nccl_shutdown = _basics.shutdown
+
 
 # import reduction op values
 Average = _basics.Average
@@ -271,7 +278,7 @@ def _broadcast_grad(op, grad):
     return grad_reduced
 
 
-def alltoall(tensor, splits=None, name=None, ignore_name_scope=False):
+def alltoall(tensor, splits=None, name=None, ignore_name_scope=False, process_group=0):
     """An op that scatters slices of the input tensor to all other Horovod processes
     and returns a tensor of gathered slices from all other Horovod processes.
 
@@ -295,14 +302,37 @@ def alltoall(tensor, splits=None, name=None, ignore_name_scope=False):
       across all processes. The shape is identical to the input shape, except for
       the first dimension, which may be greater and is the sum of all first
       dimensions of the gathered tensor slices from different Horovod processes.
-    """
+    """   
+    print(f"tensorflow/mpi_ops.py , alltoall() Start, process_group = {process_group}")
+
+    rank = MPI_LIB.horovod_rank()
+    print(f"tensorflow/mpi_ops.py , alltoall() , rank = {rank}")
+
+    process_groups = get_process_groups()
+    print(f"tensorflow/mpi_ops.py , alltoall() , process_groups = {process_groups}")
+
+    belongs = True
+    if rank in process_groups[process_group]:
+        print(f"tensorflow/mpi_ops.py , alltoall() rank = {rank} belongs to  process_group = {process_group}")
+    else:
+        print(f"tensorflow/mpi_ops.py , alltoall() rank = {rank} does not belong to  process_group = {process_group}, Nothing to do")
+        return
+
     # If splits not provided, create empty tensor as placeholder
     splits_ = tf.convert_to_tensor(splits) if splits is not None else tf.constant([], dtype=tf.int32)
+    tensor_ = tf.convert_to_tensor(tensor) 
 
     if name is None and not _executing_eagerly():
         name = 'HorovodAlltoall_%s' % _normalize_name(tensor.name)
+    print(f"tensorflow/mpi_ops.py , alltoall() , name = {name}")
+    """
     return MPI_LIB.horovod_alltoall(tensor, splits=splits_, name=name,
-                                    ignore_name_scope=ignore_name_scope)
+                                    ignore_name_scope=ignore_name_scope, process_group=process_group)
+    """
+    ret = MPI_LIB.horovod_alltoall(tensor_, splits=splits_, 
+                                    ignore_name_scope=ignore_name_scope, process_group=process_group)
+    print("\ntensorflow/mpi_ops.py , MPI_LIB.horovod_alltoall() returned\n" )
+    return ret
 
 @ops.RegisterGradient('HorovodAlltoall')
 def _alltoall_grad(op, grad):

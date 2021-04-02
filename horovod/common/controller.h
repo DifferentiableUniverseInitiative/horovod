@@ -109,12 +109,14 @@ public:
   int GetLocalSizeAtCrossRank(int i);
 
   // Set ranks that will be used to create global communicator.
-  void SetRanks(const int* ranks, int nrank) {
+  void SetRanks(std::vector<int>& ranks, int nrank) {
     ranks_.clear();
     for (auto i = 0; i < nrank; ++i) {
       ranks_.push_back(ranks[i]);
     }
+    size_ = nrank;
   };
+  void SetSize(int nrank) { size_ = nrank; }
 
   std::vector<int>& GetRanks() { return ranks_; };
   int GetRank() { return rank_; };
@@ -134,6 +136,11 @@ public:
   bool MarkCyclesInTimelinePending();
   void SynchronizeTimelineEnabled();
   StallInspector& GetStallInspector() { return stall_inspector_; };
+  ResponseCache& GetResponseCache() { return response_cache_ ; };
+  void SetResponseCache(ResponseCache& rc) { response_cache_ = rc; };
+  void SetIndex(int index) { index_ = index ; }
+  int GetIndex() { return index_ ; }
+
 
 protected:
   // Functions must be overridden by concrete controller
@@ -181,11 +188,12 @@ protected:
   int rank_ = 0;
   int local_rank_ = 0;
   int cross_rank_ = 0;
-  int size_ = 1;
+  int size_ = 0;
   int local_size_ = 1;
   int cross_size_ = 1;
   bool is_coordinator_ = false;
   bool is_homogeneous_ = false;
+  int index_ = 0;
 
   // ranks of the horovod world
   std::vector<int> ranks_;
@@ -215,7 +223,7 @@ protected:
 
   Timeline& timeline_;
 
-  ResponseCache& response_cache_;
+  ResponseCache response_cache_;
 
   ParameterManager& parameter_manager_;
 

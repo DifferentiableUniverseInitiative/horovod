@@ -17,6 +17,7 @@
 #include "gpu_operations.h"
 #include "cuda/cuda_kernels.h"
 #include "../message.h"
+#include "../logging.h"
 
 #include <thread>
 
@@ -132,7 +133,9 @@ public:
   }
 
   void SetDevice(int device) {
+    LOG(TRACE, "SetDevice() cuda for device = " << device << " start."); 
     ErrorCheck("cudaSetDevice", cudaSetDevice(device));
+    LOG(TRACE, "SetDevice() cuda for device = " << device << " end."); 
   }
 
   void MemcpyAsyncD2D(void* dst, const void* src, size_t count, cudaStream_t stream) {

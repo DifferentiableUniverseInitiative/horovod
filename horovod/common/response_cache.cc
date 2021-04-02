@@ -312,6 +312,7 @@ void CacheCoordinator::erase_hit(uint32_t bit) {
 void CacheCoordinator::set_should_shut_down(bool should_shut_down) {
   assert(!synced_);
   should_shut_down_ = should_shut_down;
+  LOG(DEBUG, "CacheCoordinator::sync() set_should_shut_down() : " << should_shut_down);
 }
 
 void CacheCoordinator::set_uncached_in_queue(bool uncached_in_queue) {
@@ -346,6 +347,7 @@ bool CacheCoordinator::uncached_in_queue() const {
 
 void CacheCoordinator::sync(std::shared_ptr<Controller> controller,
                             bool timeline_enabled) {
+  LOG(DEBUG, "CacheCoordinator::sync() start.");
   assert(!synced_);
 
   // Resize and initialize bit vector.
@@ -364,11 +366,15 @@ void CacheCoordinator::sync(std::shared_ptr<Controller> controller,
   if (timeline_enabled) {
     std::memset(&bitvector_[count], -1, count * sizeof(long long));
   }
+  LOG(DEBUG, "CacheCoordinator::sync() after bitvector.");
 
   // Set reserved status bits for additional states.
   if (!should_shut_down_) {
     bitvector_[0] |= (1ull << StatusBit::SHOULD_SHUT_DOWN);
+    LOG(DEBUG, "CacheCoordinator::sync() !should_shut_down.");
   }
+  else
+    LOG(DEBUG, "CacheCoordinator::sync() should_shut_down.");
   if (!uncached_in_queue_) {
     bitvector_[0] |= (1ull << StatusBit::UNCACHED_IN_QUEUE);
   }
@@ -377,9 +383,11 @@ void CacheCoordinator::sync(std::shared_ptr<Controller> controller,
   }
 
   // Before communication, remove any invalid bits from cache hit set.
+  LOG(DEBUG, "CacheCoordinator::sync() before cache_hits.erase.");
   for (auto bit : invalid_bits_) {
     cache_hits_.erase(bit);
   }
+  LOG(DEBUG, "CacheCoordinator::sync() after cache_hits.erase.");
 
   // For each cache hit on this worker, flip associated bit in bit vector.
   for (auto bit : cache_hits_) {
@@ -395,7 +403,9 @@ void CacheCoordinator::sync(std::shared_ptr<Controller> controller,
   }
 
   // Global AND operation to get intersected bit array.
+  LOG(DEBUG, "CacheCoordinator::sync() before CrossRankBitwiseAnd.");
   controller->CrossRankBitwiseAnd(bitvector_, fullcount);
+  LOG(DEBUG, "CacheCoordinator::sync() after CrossRankBitwiseAnd.");
 
   // Search for flipped bits to populate common cache hit set. There will never
   // be invalid bits in this set.
@@ -414,6 +424,7 @@ void CacheCoordinator::sync(std::shared_ptr<Controller> controller,
   // Set states from reserved status bits
   if (!cache_hits_.erase(StatusBit::SHOULD_SHUT_DOWN - NUM_STATUS_BITS)) {
     should_shut_down_ = true;
+    LOG(DEBUG, "CacheCoordinator::sync() setting should_shut_down = true.");
   }
   if (!cache_hits_.erase(StatusBit::UNCACHED_IN_QUEUE - NUM_STATUS_BITS)) {
     uncached_in_queue_ = true;
@@ -470,6 +481,7 @@ void CacheCoordinator::sync(std::shared_ptr<Controller> controller,
   }
 
   synced_ = true;
+  LOG(DEBUG, "CacheCoordinator::sync() end.");
 }
 
 } // namespace common

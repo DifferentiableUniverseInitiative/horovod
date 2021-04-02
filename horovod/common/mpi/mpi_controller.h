@@ -31,7 +31,7 @@ public:
       : Controller(response_cache, tensor_queue, timeline, parameter_manager,
                    group_table),
         mpi_ctx_(mpi_ctx) {
-    LOG(DEBUG) << "MPI Controller Initialized.";
+    LOG(DEBUG) << "MPIController::MPIController() , MPI Controller Initialized.";
   }
 
   virtual ~MPIController()=default;
@@ -62,6 +62,18 @@ public:
 
   bool IsMpiThreadsSupported() const { return mpi_threads_supported_; }
 
+#if HAVE_SUBCOMM
+  void Initialize(const std::vector<int>& ranks, MPIContextManager& ctx_manager) {
+	  mpi_ctx_.Initialize(ranks, ctx_manager); }
+  bool IsEnabled() { return mpi_ctx_.IsEnabled() ; }
+  MPIContext* GetMPIContext() { return &mpi_ctx_; };
+  void Enable() { mpi_ctx_.Enable(); }
+
+  void SetIndex(int index) { index_ = index ; }
+  int GetIndex() { return index_ ; }
+  MPIContext GetMpiContext() { return mpi_ctx_ ; }
+#endif
+
 protected:
   void DoInitialization() override;
 
@@ -69,6 +81,9 @@ protected:
 
   // flag indicating whether MPI multi-threading is supported
   bool mpi_threads_supported_ = false;
+  
+  // Index of the MPIController in the vector of Controllers
+  // int index_ = 0;
 };
 
 } // namespace common

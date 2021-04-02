@@ -17,6 +17,7 @@
 
 namespace horovod {
 namespace common {
+
 AdasumMPI::AdasumMPI(MPIContext* mpi_context, HorovodGlobalState* global_state)
     : Adasum(global_state), mpi_context_(mpi_context) {}
 
@@ -101,7 +102,11 @@ void AdasumMPI::PointToPointSendRecv(
     DataType horovod_datatype, int dst_src_rank, int tag, MPI_Comm communicator,
     HorovodGlobalState* global_state) {
   int status;
+#if HAVE_SUBCOMM
+  int element_size = global_state->controller[global_state->current_nccl_stream]->GetTypeSize(horovod_datatype);
+#else
   int element_size = global_state->controller->GetTypeSize(horovod_datatype);
+#endif
   int input_count = input_buffer_length / element_size;
   int output_count = output_buffer_length / element_size;
   int chunk_count =
@@ -122,5 +127,6 @@ void AdasumMPI::PointToPointSendRecv(
     }
   }
 }
+
 } // namespace common
 } // namespace horovod

@@ -57,6 +57,7 @@ bool StallInspector::CheckForStalledTensors(int global_size) {
               lag > stall_shutdown_time) {
             shutdown_ranks.insert(rank);
             should_shut_down = true;
+            LOG(DEBUG, "StallInspector::CheckForStalledTensors() setting should_shut_down = true.");
           }
         }
       }

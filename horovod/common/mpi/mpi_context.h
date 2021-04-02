@@ -75,7 +75,9 @@ struct MPIContext {
 
   // Private MPI communicator for Horovod to ensure no collisions with other
   // threads using MPI.
-  MPI_Comm mpi_comm;
+  MPI_Comm mpi_comm = MPI_COMM_NULL;
+  MPI_Comm* mpi_comm_ptr = nullptr;
+  int mpi_cookie = 0;
 
   // Node-local communicator.
   MPI_Comm local_comm;

@@ -20,6 +20,10 @@
 namespace horovod {
 namespace common {
 
+#if HAVE_SUBCOMM
+
+#else 
+
 MPI_GPUAllreduce::MPI_GPUAllreduce(MPIContext* mpi_context,
                                    GPUContext* gpu_context,
                                    HorovodGlobalState* global_state)
@@ -220,6 +224,7 @@ Status MPI_GPUAlltoall::Execute(std::vector<TensorTableEntry>& entries, const Re
 
   return Status::OK();
 }
+#endif
 
 } // namespace common
 } // namespace horovod

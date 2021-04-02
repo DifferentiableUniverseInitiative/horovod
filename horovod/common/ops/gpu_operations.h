@@ -101,8 +101,10 @@ public:
                HorovodGlobalState* global_state);
 
   void InitGPU(const std::vector<TensorTableEntry>& entries);
+  void InitGPU(const std::vector<TensorTableEntry>& entries, int iComm);
 
   void InitGPUQueue(const std::vector<TensorTableEntry>& entries, const Response& response);
+  void InitGPUQueue(const std::vector<TensorTableEntry>& entries, const Response& response, int iComm);
 
   Status FinalizeGPUQueue(const std::vector<TensorTableEntry>& entries, bool free_host_buffer = true,
                           const std::function<void()>& error_check_callback = nullptr);
