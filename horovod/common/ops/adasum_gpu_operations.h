@@ -23,6 +23,36 @@
 namespace horovod {
 namespace common {
 
+#if HAVE_SUBCOMM
+class AdasumGpuAllreduceOp : public AdasumMPI, public NCCLAllreduce {
+public:
+  AdasumGpuAllreduceOp(MPIContext* mpi_context, NCCLContext* nccl_context,
+                       GPUContext* gpu_context,
+                       HorovodGlobalState* global_state,
+		       int iComm);
+
+  ~AdasumGpuAllreduceOp();
+
+  bool Enabled(const ParameterManager& param_manager,
+               const std::vector<TensorTableEntry>& entries,
+               const Response& response) const override;
+
+  Status Execute(std::vector<TensorTableEntry>& entries,
+                 const Response& response, int iComm) ;
+  Status Execute(std::vector<TensorTableEntry>& entries,
+                 const Response& response) override;
+
+protected:
+  Status NcclHierarchical(std::vector<TensorTableEntry>& entries,
+                          const Response& response, int iComm);
+
+  // Get host buffer
+  uint8_t* GetHostBuffer(uint64_t buffer_length);
+
+private:
+  uint64_t current_host_buffer_length;
+};
+#else
 class AdasumGpuAllreduceOp : public AdasumMPI, public NCCLAllreduce {
 public:
   AdasumGpuAllreduceOp(MPIContext* mpi_context, NCCLContext* nccl_context,
@@ -48,6 +78,7 @@ protected:
 private:
   uint64_t current_host_buffer_length;
 };
+#endif
 } // namespace common
 } // namespace horovod
 #endif // HOROVOD_ADASUM_GPU_OPERATIONS_H

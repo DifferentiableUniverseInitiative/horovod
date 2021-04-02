@@ -379,6 +379,7 @@ public:
     OP_REQUIRES_OK(context, context->GetAttr("prescale_factor", &prescale_factor_));
     OP_REQUIRES_OK(context, context->GetAttr("postscale_factor", &postscale_factor_));
     OP_REQUIRES_OK(context, context->GetAttr("ignore_name_scope", &ignore_name_scope_));
+    OP_REQUIRES_OK(context, context->GetAttr("process_group", &process_group_));
   }
 
   void ComputeAsync(OpKernelContext* context, DoneCallback done) override {
@@ -408,7 +409,7 @@ public:
         [context, done](const common::Status& status) {
           context->SetStatus(ConvertStatus(status));
           done();
-        }, reduce_op, (double) prescale_factor_, (double) postscale_factor_);
+        }, reduce_op, (double) prescale_factor_, (double) postscale_factor_, process_group_);
     OP_REQUIRES_OK_ASYNC(context, ConvertStatus(enqueue_result), done);
   }
 
@@ -418,6 +419,7 @@ private:
   float prescale_factor_;
   float postscale_factor_;
   bool ignore_name_scope_;
+  int process_group_;
 };
 
 REGISTER_KERNEL_BUILDER(Name("HorovodAllreduce").Device(DEVICE_CPU),
@@ -461,6 +463,7 @@ public:
     OP_REQUIRES_OK(context, context->GetAttr("postscale_factor", &postscale_factor_));
     OP_REQUIRES_OK(context, context->GetAttr("ignore_name_scope", &ignore_name_scope_));
     OP_REQUIRES_OK(context, context->GetAttr("num_tensors", &num_tensors_));
+    OP_REQUIRES_OK(context, context->GetAttr("process_group", &process_group_));
   }
 
   void ComputeAsync(OpKernelContext* context, DoneCallback done) override {
@@ -519,7 +522,7 @@ public:
 
     auto enqueue_result = EnqueueTensorAllreduces(
         hvd_contexts, hvd_tensors, hvd_outputs, ready_events, names, device,
-        callbacks, reduce_op, (double) prescale_factor_, (double) postscale_factor_);
+        callbacks, reduce_op, (double) prescale_factor_, (double) postscale_factor_, process_group_);
     OP_REQUIRES_OK_ASYNC(context, ConvertStatus(enqueue_result), done);
   }
 
@@ -530,6 +533,7 @@ private:
   float postscale_factor_;
   bool ignore_name_scope_;
   int num_tensors_;
+  int process_group_;
 };
 
 REGISTER_KERNEL_BUILDER(Name("HorovodGroupedAllreduce").Device(DEVICE_CPU),
@@ -573,6 +577,7 @@ public:
   explicit HorovodAllgatherOp(OpKernelConstruction* context)
       : AsyncOpKernel(context) {
     OP_REQUIRES_OK(context, context->GetAttr("ignore_name_scope", &ignore_name_scope_));
+    OP_REQUIRES_OK(context, context->GetAttr("process_group", &process_group_));
   }
 
   void ComputeAsync(OpKernelContext* context, DoneCallback done) override {
@@ -599,12 +604,13 @@ public:
         [context, done](const common::Status& status) {
           context->SetStatus(ConvertStatus(status));
           done();
-        });
+        }, process_group_);
     OP_REQUIRES_OK_ASYNC(context, ConvertStatus(enqueue_result), done);
   }
 
 private:
   bool ignore_name_scope_;
+  int process_group_;
 };
 
 REGISTER_KERNEL_BUILDER(Name("HorovodAllgather").Device(DEVICE_CPU),
@@ -645,6 +651,7 @@ public:
       : AsyncOpKernel(context) {
     OP_REQUIRES_OK(context, context->GetAttr("root_rank", &root_rank_));
     OP_REQUIRES_OK(context, context->GetAttr("ignore_name_scope", &ignore_name_scope_));
+    OP_REQUIRES_OK(context, context->GetAttr("process_group", &process_group_));
   }
 
   void ComputeAsync(OpKernelContext* context, DoneCallback done) override {
@@ -680,13 +687,14 @@ public:
         device, [context, done](const common::Status& status) {
           context->SetStatus(ConvertStatus(status));
           done();
-        });
+        }, process_group_);
     OP_REQUIRES_OK_ASYNC(context, ConvertStatus(enqueue_result), done);
   }
 
 private:
   int root_rank_;
   bool ignore_name_scope_;
+  int process_group_;
 };
 
 REGISTER_KERNEL_BUILDER(Name("HorovodBroadcast").Device(DEVICE_CPU),
@@ -723,7 +731,9 @@ Output
 class HorovodJoinOp : public AsyncOpKernel {
 public:
   explicit HorovodJoinOp(OpKernelConstruction* context)
-      : AsyncOpKernel(context) {}
+      : AsyncOpKernel(context) {
+    OP_REQUIRES_OK(context, context->GetAttr("process_group", &process_group_));
+  }
 
   void ComputeAsync(OpKernelContext* context, DoneCallback done) override {
     OP_REQUIRES_OK_ASYNC(context, ConvertStatus(common::CheckInitialized()),
@@ -736,11 +746,14 @@ public:
       JOIN_TENSOR_NAME, device,
         [context, done](const common::Status& status) {
           context->SetStatus(ConvertStatus(status));
-          done();
-        });
+          done(); 
+        }, process_group_);
 
    OP_REQUIRES_OK_ASYNC(context, ConvertStatus(enqueue_result), done);
   }
+
+private:
+  int process_group_;
 };
 
 REGISTER_KERNEL_BUILDER(Name("HorovodJoin").Device(DEVICE_CPU),
@@ -870,11 +883,144 @@ Output
                    process.
 )doc");
 
+
+#if HAVE_SUBCOMM
+
+using CPUDevice = Eigen::ThreadPoolDevice;
+using GPUDevice = Eigen::GpuDevice;
+
+template <typename T>
+struct AlltoallFunctor<CPUDevice, T> {
+	void operator()(const CPUDevice& d, int size, const T* in, T* out) {
+		std::cout << "AlltoallFunctor for CPU.\n";
+	}
+};
+
+// Partially specialize functor for GpuDevice.
+template <typename T>
+struct AlltoallFunctor<Eigen::GpuDevice, T> {
+	void operator()(const Eigen::GpuDevice& d, int size, const T* in, T* out);
+};
+//
+template <typename Device, typename T>
 class HorovodAlltoallOp : public AsyncOpKernel {
 public:
   explicit HorovodAlltoallOp(OpKernelConstruction* context)
       : AsyncOpKernel(context) {
     OP_REQUIRES_OK(context, context->GetAttr("ignore_name_scope", &ignore_name_scope_));
+    OP_REQUIRES_OK(context, context->GetAttr("process_group", &process_group_));
+  }
+
+  void ComputeAsync(OpKernelContext* context, DoneCallback done) override {
+    OP_REQUIRES_OK_ASYNC(context, ConvertStatus(common::CheckInitialized()),
+                         done);
+
+    std::cout << "HorovodAlltoall::ComputeAsync() start\n";
+    auto node_name = name();
+    if (ignore_name_scope_) {
+      auto pos = node_name.find_last_of('/');
+      if (pos != std::string::npos) {
+        node_name = node_name.substr(pos + 1);
+      }
+    }
+    auto device = GetDeviceID(context);
+    std::cout << "HorovodAlltoall::ComputeAsync() device = " << device << "\n";
+
+    auto tensor = context->input(0);
+    auto splits = context->input(1);
+    auto ready_event = std::shared_ptr<common::ReadyEvent>(RecordReadyEvent(context));
+    auto hvd_context = std::make_shared<TFOpContext>(context);
+    auto hvd_tensor = std::make_shared<TFTensor>(tensor);
+    auto splits_tensor = std::make_shared<TFTensor>(splits);
+
+    // Grab the input tensor
+    const Tensor& input_tensor = context->input(0);
+
+    // Create an output tensor
+    Tensor* output_tensor = nullptr;
+    OP_REQUIRES_OK(context, context->allocate_output(0, input_tensor.shape(), &output_tensor));
+
+    AlltoallFunctor<Device, T>()(
+	context->eigen_device<Device>(),
+        static_cast<int>(input_tensor.NumElements()),
+        input_tensor.flat<T>().data(),
+        output_tensor->flat<T>().data());
+    /**
+    OP_REQUIRES(context, LaunchAlltoallKernel(input.data(), input.dimension(0), output.data()),
+                                        errors::Internal("OP_REQUIRES LaunchAlltoallKernel() failed."));
+    **/
+
+    std::cout << "HorovodAlltoall::ComputeAsync() LaunchAlltoallKernel returned.\n";
+    auto enqueue_result = EnqueueTensorAlltoall(
+        hvd_context, hvd_tensor, splits_tensor, ready_event, node_name, device,
+        [context, done](const common::Status& status) {
+          context->SetStatus(ConvertStatus(status));
+          done();
+        }, process_group_);
+    OP_REQUIRES_OK_ASYNC(context, ConvertStatus(enqueue_result), done);
+
+    std::cout << "HorovodAlltoall::ComputeAsync() end\n";
+  }
+private:
+  bool ignore_name_scope_;
+  int process_group_;
+}; // namespace tensorflow
+
+
+/**
+REGISTER_KERNEL_BUILDER(Name("HorovodAlltoall").Device(DEVICE_CPU),
+                        HorovodAlltoallOp);
+**/
+
+REGISTER_KERNEL_BUILDER(Name("HorovodAlltoall").Device(DEVICE_CPU),
+                        HorovodAlltoallOp<CPUDevice, float>);
+REGISTER_KERNEL_BUILDER(Name("HorovodAlltoall").Device(DEVICE_GPU).HostMemory("splits"),
+                        HorovodAlltoallOp<GPUDevice, float>);
+
+REGISTER_OP("HorovodAlltoall")
+    .Attr(
+        "T: {uint8, int8, uint16, int16, int32, int64, float16, float32, float64, bool, string}")
+    .Attr("ignore_name_scope: bool = False")
+    .Attr("process_group: int")
+    .Input("tensor: T")
+    .Input("splits: int32")
+    .Output("output: T")
+    .SetShapeFn([] (shape_inference::InferenceContext* c) {
+          shape_inference::ShapeHandle output;
+/**
+          TF_RETURN_IF_ERROR(
+            c->ReplaceDim(c->input(0), 0, c->UnknownDim(), &output));
+**/
+          c->set_output(0, output);
+          return Status::OK();
+    })
+/**
+    .SetShapeFn([] (shape_inference::InferenceContext* c) -> Status {
+	      c->set_output(0, c->input(0));
+	      return Status::OK();
+    })
+**/
+    .Doc(R"doc(
+Perform an MPI Alltoall on a tensor.
+
+Arguments
+    tensor:     A tensor to be distributed with all to all
+    process_group:	The sub-communicator on which the alltoall is performed.
+    splits: A list of integers in rank order describing how many elements
+                in `tensor` to send to each worker.
+
+Output
+    output:    The collected tensor data from all workers.
+)doc");
+
+#else	// HAVE_SUBCOMM
+
+class HorovodAlltoallOp : public AsyncOpKernel {
+public:
+  explicit HorovodAlltoallOp(OpKernelConstruction* context)
+      : AsyncOpKernel(context) {
+    OP_REQUIRES_OK(context, context->GetAttr("ignore_name_scope", &ignore_name_scope_));
+    OP_REQUIRES_OK(context, context->GetAttr("process_group", &process_group_));
   }
 
   void ComputeAsync(OpKernelContext* context, DoneCallback done) override {
@@ -900,15 +1046,15 @@ public:
         [context, done](const common::Status& status) {
           context->SetStatus(ConvertStatus(status));
           done();
-        });
+        }, process_group_);
     OP_REQUIRES_OK_ASYNC(context, ConvertStatus(enqueue_result), done);
   }
 private:
   bool ignore_name_scope_;
 }; // namespace tensorflow
-
 REGISTER_KERNEL_BUILDER(Name("HorovodAlltoall").Device(DEVICE_CPU),
                         HorovodAlltoallOp);
+
 #if HOROVOD_GPU_ALLTOALL
 REGISTER_KERNEL_BUILDER(Name("HorovodAlltoall").Device(DEVICE_GPU).HostMemory("splits"),
                         HorovodAlltoallOp);
@@ -916,8 +1062,9 @@ REGISTER_KERNEL_BUILDER(Name("HorovodAlltoall").Device(DEVICE_GPU).HostMemory("s
 
 REGISTER_OP("HorovodAlltoall")
     .Attr(
-        "T: {uint8, int8, uint16, int16, int32, int64, float16, float32, float64, bool}")
+        "T: {uint8, int8, uint16, int16, int32, int64, float16, float32, float64, bool, string}")
     .Attr("ignore_name_scope: bool = False")
+    .Attr("process_group: int")
     .Input("tensor: T")
     .Input("splits: int32")
     .Output("output: T")
@@ -939,6 +1086,8 @@ Arguments
 Output
     output:    The collected tensor data from all workers.
 )doc");
+
+#endif
 
 } // namespace tensorflow
 } // namespace horovod

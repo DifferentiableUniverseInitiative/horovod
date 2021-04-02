@@ -16,6 +16,7 @@
 // =============================================================================
 
 #include "controller.h"
+#include "mpi/mpi_controller.h"
 
 #include <atomic>
 #include <map>
@@ -56,8 +57,18 @@ Controller::Controller(ResponseCache& response_cache, TensorQueue& tensor_queue,
                        Timeline& timeline, ParameterManager& parameter_manager,
                        GroupTable& group_table)
     : stall_inspector_(response_cache), tensor_queue_(tensor_queue),
-      timeline_(timeline), response_cache_(response_cache),
-      parameter_manager_(parameter_manager), group_table_(group_table) {}
+      timeline_(timeline), 
+      response_cache_(response_cache),
+      parameter_manager_(parameter_manager), group_table_(group_table) { 
+	uint32_t old_capacity = response_cache.capacity();
+        LOG(DEBUG, "Controller::Controller, response_cache.old_capacity = " << old_capacity );
+	response_cache.set_capacity(256);
+        LOG(DEBUG, "Controller::Controller, response_cache.capacity = " << response_cache.capacity() );
+        response_cache_ = response_cache;
+        LOG(DEBUG, "Controller::Controller, response_cache_.capacity = " << response_cache_.capacity() );
+	response_cache.set_capacity(old_capacity);
+        LOG(DEBUG, "Controller::Controller, after reset, response_cache.capacity = " << response_cache.capacity() );
+      }
 
 void Controller::Initialize() {
   response_cache_.clear();
@@ -68,30 +79,66 @@ void Controller::Initialize() {
 
 ResponseList Controller::ComputeResponseList(std::atomic_bool& shut_down,
                                              HorovodGlobalState& state) {
+  LOG(DEBUG, "ComputeResponseList() entered, size_ = " << GetSize());
+
+  //std::shared_ptr<MPIController> pMPIController = std::static_pointer_cast<MPIController>(this);
+  MPIController* pMPIController = dynamic_cast<MPIController*>(this);
+
+  int index_controller = GetIndex();
+  LOG(DEBUG, "ComputeResponseList(), index_controller = " << index_controller << ", GetRank() = " << GetRank());
+
+  std::vector<int> ranks = pMPIController->GetRanks() ;
+  for (int i=0; i<ranks.size(); i++)
+    LOG(DEBUG, "ComputeResponseList(), GetRanks()[" << i << "] = " << ranks[i]);
+
+  // TEST MPI_Gather 1
+  auto recvcounts1 = new int[4];
+  recvcounts1[0] = 0;
+  auto sendcounts1 = new int[1];
+  sendcounts1[0] = GetRank()+1;
+  //int retcode = MPI_Gather(sendcounts1, 1, MPI_INT, recvcounts1, 1, MPI_INT, RANK_ZERO, pMPIController->GetMpiContext().mpi_comm) ;
+  int retcode = MPI_Gather(sendcounts1, 1, MPI_INT, recvcounts1, 1, MPI_INT, 0, pMPIController->GetMpiContext().mpi_comm) ;
+  if(retcode != MPI_SUCCESS)
+    LOG(INFO, "MPIController::ComputeResponseList(), MPI_Gather TEST 1 Error !!! retoode = " << retcode);
+  else
+    LOG(INFO, "MPIController::ComputeResponseList(), MPI_Gather TEST 1 OK");
+  for (int i = 0; i < 4; ++i) 
+    LOG(INFO, "MPIController::ComputeResponseList() TEST 1  recvcounts1[i] = " << recvcounts1[i]);
+
   // Update cache capacity if autotuning is active.
+  LOG(DEBUG, "ComputeResponseList(),  before IsAutoTuning, response_cache.capacity_ = " << response_cache_.capacity());
+  LOG(DEBUG, "ComputeResponseList(),  before IsAutoTuning, parameter_manager.CacheEnabled = " << (int)parameter_manager_.CacheEnabled());
   if (parameter_manager_.IsAutoTuning()) {
+    LOG(DEBUG, "ComputeResponseList(),  IsAutoTuning() = TRUE");
     response_cache_.set_capacity((int)parameter_manager_.CacheEnabled() *
                                  cache_capacity_);
   }
+  else
+    LOG(DEBUG, "ComputeResponseList(),  IsAutoTuning() = FALSE");
+  LOG(DEBUG, "ComputeResponseList(),  after IsAutoTuning, response_cache.capacity_ = " << response_cache_.capacity());
 
   // Copy the data structures out from parameters.
   // However, don't keep the lock for the rest of the loop, so that
   // enqueued stream callbacks can continue.
 
+  LOG(DEBUG, "ComputeResponseList(),  before CacheCoordinator, num_active_bits = " << response_cache_.num_active_bits());
   CacheCoordinator cache_coordinator(response_cache_.num_active_bits());
 
   // message queue used only in this cycle
   std::deque<Request> message_queue_tmp;
   tensor_queue_.PopMessagesFromQueue(message_queue_tmp);
   for (auto& message : message_queue_tmp) {
+    LOG(DEBUG, "ComputeResponseList(), message_queue_tmp loop");
     if (message.request_type() == Request::JOIN) {
-      state.joined = true;
+      LOG(DEBUG, "ComputeResponseList(), message_queue_tmp loop, Request::JOIN");
+      state.joined[index_controller] = true;
       cache_coordinator.set_uncached_in_queue(true);
       continue;
     }
 
     // Keep track of cache hits
     if (response_cache_.capacity() > 0) {
+      LOG(DEBUG, "ComputeResponseList(), message_queue_tmp loop, response_cache.capacity() > 0");
       auto cache_ = response_cache_.cached(message);
       if (cache_ == ResponseCache::CacheState::HIT) {
         uint32_t cache_bit = response_cache_.peek_cache_bit(message);
@@ -113,85 +160,118 @@ ResponseList Controller::ComputeResponseList(std::atomic_bool& shut_down,
     }
   }
 
-  if (state.joined && response_cache_.capacity() > 0) {
+  LOG(DEBUG, "ComputeResponseList() after analyzing message_queue_tmp , GetRank() = " << GetRank());
+  LOG(DEBUG, "ComputeResponseList() after analyzing message_queue_tmp , capacity = " <<  response_cache_.capacity());
+  if (state.joined[index_controller] && response_cache_.capacity() > 0) {
+    LOG(DEBUG, "state.joined[index_controller] && response_cache_.capacity() > 0");
     for (uint32_t bit : response_cache_.list_all_bits()) {
+      LOG(DEBUG, "before record_hit");
       cache_coordinator.record_hit(bit);
+      LOG(DEBUG, "after record_hit");
     }
   }
 
   // Flag indicating that the background thread should shut down.
   bool should_shut_down = shut_down;
+  LOG(DEBUG, "ComputeResponseList() should_shut_down = " << should_shut_down);
 
   // Check for stalled tensors.
+  LOG(DEBUG, "ComputeResponseList() before ShouldPerformCheck");
   if (stall_inspector_.ShouldPerformCheck()) {
     if (is_coordinator_) {
-      should_shut_down |= stall_inspector_.CheckForStalledTensors(size_);
+      should_shut_down |= stall_inspector_.CheckForStalledTensors(GetSize());
+      LOG(DEBUG, "ComputeResponseList() ShouldPerformCheck, is_coordinator, should_shut_down = " << should_shut_down);
     }
+    else
+      LOG(DEBUG, "ComputeResponseList() ShouldPerformCheck, NOT is_coordinator");
 
     if (response_cache_.capacity() > 0) {
+      LOG(DEBUG, "ComputeResponseList() ShoudPerformCheck, response_cache.capacity > 0");
       stall_inspector_.InvalidateStalledCachedTensors(cache_coordinator);
     }
     stall_inspector_.UpdateCheckTime();
   }
 
   cache_coordinator.set_should_shut_down(should_shut_down);
+  LOG(DEBUG, "ComputeResponseList() after UpdateCheckTime, should_shut_down = " << should_shut_down);
 
   if (response_cache_.capacity() > 0) {
+    LOG(DEBUG, "ComputeResponseList() response_cache_.capacity > 0");
     // Obtain common cache hits and cache invalidations across workers. Also,
     // determine if any worker has uncached messages in queue or requests
     // a shutdown. This function removes any invalid cache entries, if they
     // exist.
     CoordinateCacheAndState(cache_coordinator);
+    LOG(DEBUG, "ComputeResponseList() after CoordinateCacheAndState()");
     // Remove uncommon cached tensors from queue and replace to state
     // queue for next cycle. Skip adding common cached tensors to
     // queue as they are handled separately.
     std::deque<Request> messages_to_replace;
     size_t num_messages = message_queue_tmp.size();
+    LOG(DEBUG, "ComputeResponseList() num_messages = " << num_messages);
     for (size_t i = 0; i < num_messages; ++i) {
+      LOG(DEBUG, "ComputeResponseList() start loop for message = " << i);
       auto& message = message_queue_tmp.front();
       if (response_cache_.cached(message) == ResponseCache::CacheState::HIT) {
+        LOG(DEBUG, "ComputeResponseList() cached = ::HIT for message " << i);
         uint32_t cache_bit = response_cache_.peek_cache_bit(message);
         if (cache_coordinator.cache_hits().find(cache_bit) ==
             cache_coordinator.cache_hits().end()) {
+          LOG(DEBUG, "ComputeResponseList() to push_back in messages_to_replace for message " << i);
           // Try to process again in next cycle.
           messages_to_replace.push_back(std::move(message));
         } else {
+          LOG(DEBUG, "ComputeResponseList() to RemoveCachdTensor for messagge " << i);
           // Remove timing entry for messages being handled this cycle.
           stall_inspector_.RemoveCachedTensor(message.tensor_name());
         }
+        LOG(DEBUG, "ComputeResponseList() cached = ::HIT end for message " << i);
       } else {
+        LOG(DEBUG, "ComputeResponseList() cached != ::HIT for message " << i);
         // Remove timing entry for messages being handled this cycle.
         stall_inspector_.RemoveCachedTensor(message.tensor_name());
         message_queue_tmp.push_back(std::move(message));
+        LOG(DEBUG, "ComputeResponseList() cached != ::HIT end for message " << i);
       }
       message_queue_tmp.pop_front();
+      LOG(DEBUG, "ComputeResponseList() end loop for message = " << i);
     }
     tensor_queue_.PushMessagesToQueue(messages_to_replace);
   }
+  else
+    LOG(DEBUG, "ComputeResponseList() response_cache_.capacity = 0 ");
+  LOG(DEBUG, "ComputeResponseList() after test response_cache_.capacity ");
 
   if (!message_queue_tmp.empty()) {
-    LOG(TRACE, rank_) << "Sent " << message_queue_tmp.size()
+    LOG(TRACE, rank_) << "ComputeResponseList() Sent " << message_queue_tmp.size()
                       << " messages to coordinator.";
   }
+  else
+    LOG(TRACE, rank_) << "ComputeResponseList() message_queue_empty, No message sent to coordinator.";
 
+  LOG(DEBUG, "ComputeResponseList() before set_shutdownn should_shut_down = " << cache_coordinator.should_shut_down());
   ResponseList response_list;
   response_list.set_shutdown(cache_coordinator.should_shut_down());
 
   bool need_communication = true;
+  LOG(DEBUG, "ComputeResponseList() before computing need_communication, uncached_in_queue = " << cache_coordinator.uncached_in_queue() );
   if (response_cache_.capacity() > 0 &&
       !cache_coordinator.uncached_in_queue()) {
     // if cache is enabled and no uncached new message coming in, no need for
     // additional communications
     need_communication = false;
 
+    LOG(DEBUG, "ComputeResponseList() need_communication = FALSE");
     // If no messages to send, we can simply return an empty response list;
     if (cache_coordinator.cache_hits().empty()) {
+      LOG(DEBUG, "ComputeResponseList() cache_coordinator.cache_hits().empty(), return");
       return response_list;
     }
     // otherwise we need to add cached messages to response list.
   }
 
   if (!need_communication) {
+    LOG(DEBUG, "ComputeResponseList() !need_communication");
     // If all messages in queue have responses in cache, use fast path with
     // no additional coordination.
 
@@ -234,8 +314,10 @@ ResponseList Controller::ComputeResponseList(std::atomic_bool& shut_down,
 
     // Fuse responses as normal.
     FuseResponses(responses, state, response_list);
+    LOG(DEBUG, "ComputeResponseList() in !need_communication, after FuseResponses , should_shut_down = " << cache_coordinator.should_shut_down());
     response_list.set_shutdown(cache_coordinator.should_shut_down());
   } else {
+    LOG(DEBUG, "ComputeResponseList() NOT !need_communication");
     // There are uncached messages coming in, need communication to figure out
     // whether those are ready to be reduced.
 
@@ -245,45 +327,73 @@ ResponseList Controller::ComputeResponseList(std::atomic_bool& shut_down,
     std::vector<std::string> ready_to_reduce;
 
     if (is_coordinator_) {
-      LOG(TRACE) << "Adding messages from rank 0";
+      LOG(TRACE) << "ComputeResponseList() is_coordinator_ = TRUE, Before loop on message_queueu_tmp.";
+
+    // TEST MPI_Gather 1
+    auto recvcounts2 = new int[4];
+    recvcounts2[0] = 0;
+    auto sendcounts2 = new int[1];
+    sendcounts2[0] = index_controller;
+    int retcode = MPI_Gather(sendcounts2, 1, MPI_INT, recvcounts2, 1, MPI_INT, RANK_ZERO, pMPIController->GetMpiContext().mpi_comm) ;
+    if(retcode != MPI_SUCCESS)
+	LOG(INFO, "MPIController::ComputeResponseList(), MPI_Gather TEST 2 Error !!! retoode = " << retcode);
+    else
+        LOG(INFO, "MPIController::ComputeResponseList(), MPI_Gather TEST 2 OK");
+    for (int i = 0; i < 4; ++i)
+        LOG(INFO, "MPIController::ComputeResponseList() TEST 2  recvcounts2[i] = " << recvcounts2[i]);
+	
       while (!message_queue_tmp.empty()) {
         // Pop the first available message
+        LOG(TRACE) << "ComputeResponseList() is_coordinator_ = TRUE, Loop before message_queue_tmp.front()";
         Request message = message_queue_tmp.front();
+        LOG(TRACE) << "ComputeResponseList() is_coordinator_ = TRUE, Loop before message_queue_tmp.pop_front()";
         message_queue_tmp.pop_front();
+        LOG(TRACE) << "ComputeResponseList() is_coordinator_ = TRUE, Loop after message_queue_tmp.pop_front()";
 
         if (message.request_type() == Request::JOIN) {
-          state.joined_size++;
+          LOG(TRACE, "ComputeResponseList() is_coordinator_ = TRUE, request_type = JOIN");
+          state.joined_size[index_controller]++;
           continue;
         }
+	else
+          LOG(TRACE, "ComputeResponseList() is_coordinator_ = TRUE, request_type = " << message.request_type());
 
-        bool reduce = IncrementTensorCount(message, state.joined_size);
+        bool reduce = IncrementTensorCount(message, state.joined_size[index_controller]);
+        LOG(TRACE, "ComputeResponseList() is_coordinator_ = TRUE, reduce = " << reduce <<
+			", joined_size[index_controller] = " << state.joined_size[index_controller] <<
+			", tensor_name = " <<  message.tensor_name() << ", request_rank = " <<  message.request_rank() <<
+			", GetSize() = " << GetSize() );
         stall_inspector_.RecordUncachedTensorStart(
-            message.tensor_name(), message.request_rank(), size_);
+            message.tensor_name(), message.request_rank(), GetSize());
         if (reduce) {
           ready_to_reduce.push_back(message.tensor_name());
+          LOG(TRACE, "ComputeResponseList() is_coordinator_ = TRUE, ready_to_reduce.push_back() done.");
         }
       }
+      LOG(TRACE) << "ComputeResponseList() is_coordinator_ = TRUE, after Loop message_queue_tmp.";
 
       // Receive ready tensors from other ranks
       std::vector<RequestList> ready_list;
       RecvReadyTensors(ready_to_reduce, ready_list);
+      LOG(TRACE) << "ComputeResponseList() is_coordinator_ = TRUE, After RecvReadyTensors." ;
 
       // Process messages.
-      for (int i = 1; i < size_; ++i) {
-        LOG(TRACE) << "Adding messages from rank " << i;
+      for (int i = 0; i < GetSize(); ++i) {
+        LOG(TRACE) << "ComputeResponseList() is_coordinator_ = TRUE, Adding messages from rank " << i;
         auto received_message_list = ready_list[i];
         for (auto& received_message : received_message_list.requests()) {
           auto& received_name = received_message.tensor_name();
 
           if (received_message.request_type() == Request::JOIN) {
-            state.joined_size++;
+            state.joined_size[index_controller]++;
             continue;
           }
 
-          bool reduce = IncrementTensorCount(received_message, state.joined_size);
+          LOG(TRACE) << "ComputeResponseList() is_coordinator_ = TRUE, Before IncrementTensorCount.";
+          bool reduce = IncrementTensorCount(received_message, state.joined_size[index_controller]);
           stall_inspector_.RecordUncachedTensorStart(
               received_message.tensor_name(), received_message.request_rank(),
-              size_);
+              GetSize());
           if (reduce) {
             ready_to_reduce.push_back(received_name);
           }
@@ -291,14 +401,16 @@ ResponseList Controller::ComputeResponseList(std::atomic_bool& shut_down,
         if (received_message_list.shutdown()) {
           // Received SHUTDOWN request from one of the workers.
           should_shut_down = true;
+          LOG(TRACE, "ComputeResponseList() in received_message_list.shutdown(), setting should_shut_down = true");
         }
       }
+      LOG(TRACE) << "ComputeResponseList() is_coordinator_ = TRUE, Before IncrementTensorCount.";
 
       // Check if tensors from previous ticks are ready to reduce after Joins.
-      if (state.joined_size > 0) {
+      if (state.joined_size[index_controller] > 0) {
         for (auto& table_iter : message_table_) {
           int count = (int)table_iter.second.size();
-          if (count == (size_ - state.joined_size) &&
+          if (count == (GetSize() - state.joined_size[index_controller]) &&
               std::find(ready_to_reduce.begin(), ready_to_reduce.end(),
                         table_iter.first) == ready_to_reduce.end()) {
             state.timeline.NegotiateEnd(table_iter.first);
@@ -306,6 +418,7 @@ ResponseList Controller::ComputeResponseList(std::atomic_bool& shut_down,
           }
         }
       }
+      LOG(TRACE) << "ComputeResponseList() is_coordinator_ = TRUE, Before Fuse.";
 
       // Fuse tensors in groups before processing others.
       if (state.disable_group_fusion && !group_table_.empty()) {
@@ -334,13 +447,14 @@ ResponseList Controller::ComputeResponseList(std::atomic_bool& shut_down,
           }
         }
 
+        LOG(TRACE) << "ComputeResponseList() is_coordinator_ = TRUE, Before Loop common_ready_groups.";
         // For each ready group, form and fuse response lists independently
         for (auto id : common_ready_groups) {
           std::deque<Response> responses;
           for (const auto &tensor_name : group_table_.GetGroupTensorNames(id)) {
             if (message_table_.find(tensor_name) != message_table_.end()) {
               // Uncached message
-              Response response = ConstructResponse(tensor_name, state.joined_size);
+              Response response = ConstructResponse(tensor_name, state.joined_size[index_controller]);
               responses.push_back(std::move(response));
 
             } else {
@@ -362,7 +476,9 @@ ResponseList Controller::ComputeResponseList(std::atomic_bool& shut_down,
       // gathered, and everyone else should have sent all their information
       // to rank zero. We can now do reductions and gathers; rank zero will
       // choose which ones and in what order, and will notify the other ranks
-      // before doing each reduction.
+      /// before doing each reduction.
+      //
+      LOG(DEBUG, "ComputeResponseList() is_coordinator_ = TRUE, Constructing Reponse");
       std::deque<Response> responses;
 
       if (response_cache_.capacity() > 0) {
@@ -371,7 +487,7 @@ ResponseList Controller::ComputeResponseList(std::atomic_bool& shut_down,
         // coordinator rank calls this code, use peek instead of get here to
         // preserve cache order across workers.
         // No need to do this when all ranks did Join.
-        if (state.joined_size < size_) {
+        if (state.joined_size[index_controller] < GetSize()) {
           for (auto bit : cache_coordinator.cache_hits()) {
             responses.push_back(response_cache_.peek_response(bit));
           }
@@ -386,45 +502,70 @@ ResponseList Controller::ComputeResponseList(std::atomic_bool& shut_down,
           continue;
         }
 
-        Response response = ConstructResponse(tensor_name, state.joined_size);
+        Response response = ConstructResponse(tensor_name, state.joined_size[index_controller]);
         responses.push_back(std::move(response));
       }
-      if (state.joined_size == size_) {
+      if (state.joined_size[index_controller] == GetSize()) {
         // All ranks did Join(). Send the response, reset joined size.
         Response join_response;
         join_response.set_response_type(Response::JOIN);
         join_response.add_tensor_name(JOIN_TENSOR_NAME);
         responses.push_back(std::move(join_response));
-        state.joined_size = 0;
+        state.joined_size[index_controller] = 0;
       }
       FuseResponses(responses, state, response_list);
       response_list.set_shutdown(should_shut_down);
+      LOG(TRACE, "ComputeResponseList() after FuseResponses, is_coordinator, setting should_shut_down = " << should_shut_down);
 
       // Broadcast final results to other ranks.
       SendFinalTensors(response_list);
+      LOG(TRACE) << "ComputeResponseList() is_coordinator_ = TRUE, after SendFinalTensors";
 
     } else {
+      LOG(TRACE) << "ComputeResponseList() is_coordinator_ = FALSE, before SendReadyTensors and RecvFinalTensors";
+
+      // TEST MPI_Gather 1
+      auto recvcounts2 = new int[4];
+      recvcounts2[0] = 0;
+      auto sendcounts2 = new int[1];
+      sendcounts2[0] = GetRank()*2;
+      int retcode = MPI_Gather(sendcounts2, 1, MPI_INT, recvcounts2, 1, MPI_INT, RANK_ZERO, pMPIController->GetMpiContext().mpi_comm) ;
+      if(retcode != MPI_SUCCESS)
+	LOG(INFO, "MPIController::ComputeResponseList(), MPI_Gather TEST 3 Error !!! retoode = " << retcode);
+      else
+        LOG(INFO, "MPIController::ComputeResponseList(), MPI_Gather TEST 3 OK");
+      for (int i = 0; i < 4; ++i)
+        LOG(INFO, "MPIController::ComputeResponseList() TEST 3  recvcounts2[i] = " << recvcounts2[i]);
+	
       RequestList message_list;
       message_list.set_shutdown(should_shut_down);
+      LOG(TRACE, "ComputeResponseList() is_coordinator = FALSE , before message_queuue.empty() , setting should_shut_down = " << should_shut_down);
       while (!message_queue_tmp.empty()) {
+        LOG(TRACE) << "ComputeResponseList() is_coordinator_ = FALSE, Loop before add_request";
         message_list.add_request(message_queue_tmp.front());
+        LOG(TRACE) << "ComputeResponseList() is_coordinator_ = FALSE, Loop before pop_front";
         message_queue_tmp.pop_front();
+        LOG(TRACE) << "ComputeResponseList() is_coordinator_ = FALSE, Loop after pop_front";
       }
 
+      LOG(TRACE) << "ComputeResponseList() is_coordinator_ = FALSE, before SendReadyTensors";
       // Send ready tensors to rank zero
       SendReadyTensors(message_list);
 
+      LOG(TRACE) << "ComputeResponseList() is_coordinator_ = FALSE, before RecvFinalTensors";
       // Receive final tensors to be processed from rank zero
       RecvFinalTensors(response_list);
+      LOG(TRACE) << "ComputeResponseList() is_coordinator_ = FALSE, after SendReadyTensors and RecvFinalTensors0";
     }
   }
 
   if (!response_list.responses().empty()) {
+    LOG(TRACE) << "ComputeResponseList() !response_list.responses().empty()";
     std::string tensors_ready;
     for (const auto& r : response_list.responses()) {
       tensors_ready += r.tensor_names_string() + "; ";
     }
-    LOG(TRACE) << "Sending ready responses as " << tensors_ready;
+    LOG(TRACE) << "ComputeResponseList() Sending ready responses as " << tensors_ready;
   }
 
   // If need_communication is false, meaning no uncached message coming in,
@@ -436,14 +577,16 @@ ResponseList Controller::ComputeResponseList(std::atomic_bool& shut_down,
       if ((response.response_type() == Response::ResponseType::ALLREDUCE ||
            response.response_type() == Response::ResponseType::ADASUM ||
            response.response_type() == Response::ResponseType::ALLTOALL) &&
-          (int)response.devices().size() == size_) {
-        response_cache_.put(response, tensor_queue_, state.joined);
+          (int)response.devices().size() == GetSize()) {
+        response_cache_.put(response, tensor_queue_, state.joined[index_controller]);
       }
     }
   }
 
   // Reassign cache bits based on current cache order.
   response_cache_.update_cache_bits();
+
+  LOG(TRACE) << "ComputeResponseList() ending.";
 
   return response_list;
 }
@@ -748,8 +891,10 @@ Response Controller::ConstructResponse(const std::string& name, int joined_size)
 }
 
 void Controller::CoordinateCacheAndState(CacheCoordinator& cache_coordinator) {
+  LOG(DEBUG,  "Controller::CoordinateCacheAndState entered.");
   // Sync cache and state information across workers.
   cache_coordinator.sync(shared_from_this(), timeline_enabled_);
+  LOG(DEBUG,  "Controller::CoordinateCacheAndState, after cache_coordinator.sync.");
 
   // If invalid cache entries exist, erase associated entries.
   if (!cache_coordinator.invalid_bits().empty()) {
@@ -757,21 +902,30 @@ void Controller::CoordinateCacheAndState(CacheCoordinator& cache_coordinator) {
       response_cache_.erase_response(bit);
     }
   }
+  LOG(DEBUG,  "Controller::CoordinateCacheAndState, after invalid_bits.empty.");
 
   if (timeline_enabled_) {
     // Start/continue negotiation phase on timeline bit entries.
+    LOG(DEBUG,  "Controller::CoordinateCacheAndState, timeline_enabled");
     for (auto bit : cache_coordinator.timeline_bits()) {
+      LOG(DEBUG,  "Controller::CoordinateCacheAndState, timeline_bits(), start loop");
       auto& response = response_cache_.peek_response(bit);
+      LOG(DEBUG,  "Controller::CoordinateCacheAndState, timeline_bits(), after peek_response loop");
       timeline_.NegotiateStart(response.tensor_names()[0],
                                (Request::RequestType)response.response_type());
+      LOG(DEBUG,  "Controller::CoordinateCacheAndState, timeline_bits(), after NegotiateStart loop");
     }
 
     // End negotiation phase for synced cache hit set entries.
     for (auto bit : cache_coordinator.cache_hits()) {
+      LOG(DEBUG,  "Controller::CoordinateCacheAndState, cache_hits(), start loop");
       auto& response = response_cache_.peek_response(bit);
+      LOG(DEBUG,  "Controller::CoordinateCacheAndState, cache_hits(), after peek_response loop");
       timeline_.NegotiateEnd(response.tensor_names()[0]);
+      LOG(DEBUG,  "Controller::CoordinateCacheAndState, cache_hits(), after NegotiateEnd loop");
     }
   }
+  LOG(DEBUG,  "Controller::CoordinateCacheAndState, ended");
 }
 
 void Controller::FuseResponses(std::deque<Response>& responses,
@@ -909,7 +1063,7 @@ void Controller::FuseResponses(std::deque<Response>& responses,
     }
 
     response_list.add_response(std::move(response));
-    LOG(TRACE) << "Created response of size " << tensor_size;
+    LOG(TRACE, "ComputeResponseList() Created response of size " << tensor_size);
   }
 }
 
@@ -943,12 +1097,14 @@ bool Controller::IncrementTensorCount(const Request& msg, int joined_size) {
   auto& name = msg.tensor_name();
   auto table_iter = message_table_.find(name);
   if (table_iter == message_table_.end()) {
+    LOG(DEBUG, "Controller::IncrementTensorCount() msg NOT found in message_tabla, creating messages"); 
     std::vector<Request> messages = {msg};
-    messages.reserve(static_cast<unsigned long>(size_));
+    messages.reserve(static_cast<unsigned long>(GetSize()));
     message_table_.emplace(name, std::move(messages));
     table_iter = message_table_.find(name);
     timeline_.NegotiateStart(name, msg.request_type());
   } else {
+    LOG(DEBUG, "Controller::IncrementTensorCount() msg found in message_table"); 
     std::vector<Request>& messages = table_iter->second;
     messages.push_back(msg);
   }
@@ -957,7 +1113,9 @@ bool Controller::IncrementTensorCount(const Request& msg, int joined_size) {
 
   std::vector<Request>& messages = table_iter->second;
   int count = (int)messages.size();
-  bool ready_to_reduce = count == (size_ - joined_size);
+  LOG(DEBUG, "Controller::IncrementTensorCount() count = " << count);
+  bool ready_to_reduce = count == (GetSize() - joined_size);
+  LOG(DEBUG, "Controller::IncrementTensorCount() ready_to_reduce = " << ready_to_reduce);
   if (ready_to_reduce) {
     timeline_.NegotiateEnd(name);
   }

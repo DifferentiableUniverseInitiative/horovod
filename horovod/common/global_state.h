@@ -28,6 +28,8 @@
 #include "timeline.h"
 #include "utils/env_parser.h"
 
+#include <mpi.h>
+
 namespace horovod {
 namespace common {
 
@@ -40,6 +42,9 @@ class Controller;
 // requires running on a single thread. As a result, we have to have a single
 // background thread responsible for all MPI operations, and communicate with
 // that background thread through global state.
+
+// A revoir en allocation dynamique
+
 struct HorovodGlobalState {
   // An atomic boolean which is set to true when background thread is started.
   // This ensures that only one background thread is spawned.
@@ -51,8 +56,83 @@ struct HorovodGlobalState {
   // Whether the background thread should shutdown.
   std::atomic_bool shut_down{false};
 
+#if HAVE_SUBCOMM
+
+  const int max_subcomm = 10;
+
+  // One Timeline object per sub-communicator
+  Timeline timeline;
+
+  // One Controller object per sub-communicator
+  std::vector<std::shared_ptr<Controller>> controller;
+
+  // One Controller object per sub-communicator
+  std::vector<std::vector<int>> process_groups;
+
+  // One Timeline object per sub-communicator
+  ParameterManager parameter_manager;
+
+  // One TensorQueue object per sub-communicator
+  TensorQueue tensor_queue;
+
+  // One TensorQueue object per sub-communicator
+  std::vector<ResponseCache> response_cache;
+
+  // One Timeline object per sub-communicator
+  GroupTable group_table;
+
+  // Number of GPU streams to use
+  int num_nccl_streams = 1 ;
+
+  // Index of current GPU stream to use
+  int current_nccl_stream = 0 ;
+
+  // Encapsulates the fusion buffers, handles resizing and auto-tuning of buffer
+  // size.
+  FusionBufferManager fusion_buffer;
+
+  // Number of ranks that did Join
+  std::vector<int> joined_size ;
+
+  // If a rank is Joined, AllReduce uses temporary 0 tensors for it.
+  std::vector<bool> joined ;
+
+  MPI_Comm* mpi_world_comm_ptr = nullptr;
+
+#else
+
   // Timeline writer.
   Timeline timeline;
+
+  std::shared_ptr<Controller> controller;
+
+  TensorQueue tensor_queue;
+
+  ParameterManager parameter_manager;
+
+  // Information on registered groups.
+  GroupTable group_table;
+
+  // LRU cache of Responses
+  ResponseCache response_cache;
+  
+  // Number of GPU streams to use
+  int num_nccl_streams = 1;
+
+  // Index of current GPU stream to use
+  int current_nccl_stream = 0;
+  //
+  // Encapsulates the fusion buffers, handles resizing and auto-tuning of buffer
+  // size.
+  FusionBufferManager fusion_buffer;
+
+  // Number of ranks that did Join()
+  int joined_size = 0;
+
+  // If a rank is Joined, AllReduce uses temporary 0 tensors for it.
+  bool joined = false;
+
+#endif
 
   // Flag indicating whether timeline enabled.
   bool timeline_enabled = false;
@@ -60,21 +140,11 @@ struct HorovodGlobalState {
   // Flag indicating whether to mark cycles in the timeline.
   std::atomic_bool mark_cycles_in_timeline{false};
 
-  ParameterManager parameter_manager;
-
-  // Encapsulates the fusion buffers, handles resizing and auto-tuning of buffer
-  // size.
-  FusionBufferManager fusion_buffer;
-
   // Time point when last cycle started.
   std::chrono::steady_clock::time_point last_cycle_start;
 
   // Whether collective context has been completed on the background thread.
   std::atomic_bool initialization_done{false};
-
-  std::shared_ptr<Controller> controller;
-
-  TensorQueue tensor_queue;
 
   // Pointer to shared buffer for allgather
   void* shared_buffer = nullptr;
@@ -82,20 +152,8 @@ struct HorovodGlobalState {
   // Current shared buffer size
   int64_t shared_buffer_size = 0;
 
-  // LRU cache of Responses
-  ResponseCache response_cache;
-
   // Number of responses that can be cached
   uint32_t cache_capacity = 1024;
-
-  // Number of GPU streams to use
-  int num_nccl_streams = 1;
-
-  // Index of current GPU stream to use
-  int current_nccl_stream = 0;
-
-  // Information on registered groups.
-  GroupTable group_table;
 
   // A LibType indicating what framework we are using to perform CPU operations.
   LibType cpu_operation;
@@ -103,12 +161,6 @@ struct HorovodGlobalState {
   // A LibType indicating what framework we are using to perform controller
   // operations.
   LibType control_operation;
-
-  // Number of ranks that did Join()
-  int joined_size = 0;
-
-  // If a rank is Joined, AllReduce uses temporary 0 tensors for it.
-  bool joined = false;
 
   // Chunk size for MPI send/recv in Adasum allreduce. Some versions of Intel MPI
   // benefit from a smaller chunk size.

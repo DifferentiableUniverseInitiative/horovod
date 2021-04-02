@@ -20,12 +20,24 @@
 
 #include "collective_operations.h"
 #include "../parameter_manager.h"
+#include "../logging.h"
 
 namespace horovod {
 namespace common {
 
 class OperationManager {
 public:
+#if HAVE_SUBCOMM
+  OperationManager(ParameterManager* param_manager,
+                   std::vector<std::shared_ptr<AllreduceOp>> allreduce_ops,
+                   std::vector<std::shared_ptr<AllgatherOp>> allgather_ops,
+                   std::vector<std::shared_ptr<BroadcastOp>> broadcast_ops,
+                   std::vector<std::shared_ptr<AlltoallOp>> alltoall_ops,
+                   std::shared_ptr<JoinOp> join_op,
+                   std::vector<std::shared_ptr<AllreduceOp>> adasum_ops,
+                   std::shared_ptr<ErrorOp> error_op,
+		   int iComm);
+#else
   OperationManager(ParameterManager* param_manager,
                    std::vector<std::shared_ptr<AllreduceOp>> allreduce_ops,
                    std::vector<std::shared_ptr<AllgatherOp>> allgather_ops,
@@ -34,6 +46,7 @@ public:
                    std::shared_ptr<JoinOp> join_op,
                    std::vector<std::shared_ptr<AllreduceOp>> adasum_ops,
                    std::shared_ptr<ErrorOp> error_op);
+#endif
 
   virtual ~OperationManager() = default;
 
@@ -63,6 +76,9 @@ private:
   std::shared_ptr<JoinOp> join_op_;
   std::vector<std::shared_ptr<AllreduceOp>> adasum_ops_;
   std::shared_ptr<ErrorOp> error_op_;
+#if HAVE_SUBCOMM
+  int iComm_;
+#endif
 };
 
 } // namespace common

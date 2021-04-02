@@ -29,6 +29,7 @@ class TensorQueue {
 public:
   TensorQueue() = default;
   TensorQueue(const TensorQueue&) = delete;
+
   Status AddToTensorQueue(TensorTableEntry& e, Request& message);
   Status AddToTensorQueueMulti(std::vector<TensorTableEntry>& entries, std::vector<Request>& messages);
 

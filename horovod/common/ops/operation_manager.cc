@@ -20,6 +20,28 @@
 namespace horovod {
 namespace common {
 
+#if HAVE_SUBCOMM
+OperationManager::OperationManager(ParameterManager* param_manager,
+                                   std::vector<std::shared_ptr<AllreduceOp>> allreduce_ops,
+                                   std::vector<std::shared_ptr<AllgatherOp>> allgather_ops,
+                                   std::vector<std::shared_ptr<BroadcastOp>> broadcast_ops,
+                                   std::vector<std::shared_ptr<AlltoallOp>> alltoall_ops,
+                                   std::shared_ptr<JoinOp> join_op,
+                                   std::vector<std::shared_ptr<AllreduceOp>> adasum_ops,
+                                   std::shared_ptr<ErrorOp> error_op,
+				   int iComm)
+    : param_manager_(param_manager),
+      allreduce_ops_(std::move(allreduce_ops)),
+      allgather_ops_(std::move(allgather_ops)),
+      broadcast_ops_(std::move(broadcast_ops)),
+      alltoall_ops_(std::move(alltoall_ops)),
+      join_op_(std::move(join_op)),
+      adasum_ops_(std::move(adasum_ops)),
+      error_op_(std::move(error_op))
+{
+  iComm_ = iComm;
+}
+#else
 OperationManager::OperationManager(ParameterManager* param_manager,
                                    std::vector<std::shared_ptr<AllreduceOp>> allreduce_ops,
                                    std::vector<std::shared_ptr<AllgatherOp>> allgather_ops,
@@ -36,6 +58,7 @@ OperationManager::OperationManager(ParameterManager* param_manager,
       join_op_(std::move(join_op)),
       adasum_ops_(std::move(adasum_ops)),
       error_op_(std::move(error_op)) {}
+#endif
 
 Status OperationManager::ExecuteAllreduce(std::vector<TensorTableEntry>& entries,
                                           const Response& response) const {
@@ -69,10 +92,15 @@ Status OperationManager::ExecuteBroadcast(std::vector<TensorTableEntry>& entries
 
 Status OperationManager::ExecuteAlltoall(std::vector<TensorTableEntry>& entries,
                                          const Response& response) const {
+  LOG(DEBUG, "OperationManager::ExecuteAlltoall() entered");
   for (auto& op : alltoall_ops_) {
+    LOG(DEBUG, "OperationManager::ExecuteAlltoall() in loop");
     if (op->Enabled(*param_manager_, entries, response)) {
-      return op->Execute(entries, response);
+      LOG(DEBUG, "OperationManager::ExecuteAlltoall() op->Enabled()");
+      return op->Execute(entries, response, iComm_);
     }
+    else
+      LOG(DEBUG, "OperationManager::ExecuteAlltoall() ! op->Enabled()");
   }
   throw std::logic_error("No Alltoall operation enabled");
 }
@@ -99,6 +127,7 @@ Status OperationManager::ExecuteError(std::vector<TensorTableEntry>& entries,
 
 Status OperationManager::ExecuteOperation(std::vector<TensorTableEntry>& entries,
                                           const Response& response) const {
+  LOG(DEBUG, "OperationManager::ExecuteOperation() start");
   if (response.response_type() == Response::ALLREDUCE) {
     return ExecuteAllreduce(entries, response);
   } else if (response.response_type() == Response::ALLGATHER) {
@@ -106,6 +135,7 @@ Status OperationManager::ExecuteOperation(std::vector<TensorTableEntry>& entries
   } else if (response.response_type() == Response::BROADCAST) {
     return ExecuteBroadcast(entries, response);
   } else if (response.response_type() == Response::ALLTOALL) {
+    LOG(DEBUG, "OperationManager::ExecuteOperation() Response::ALLTOALL");
     return ExecuteAlltoall(entries, response);
   } else if (response.response_type() == Response::JOIN) {
     return ExecuteJoin(entries, response);
@@ -116,6 +146,7 @@ Status OperationManager::ExecuteOperation(std::vector<TensorTableEntry>& entries
   } else {
     throw std::logic_error("No operation found for response type provided");
   }
+  LOG(DEBUG, "OperationManager::ExecuteOperation() end");
 }
 
 } // namespace common

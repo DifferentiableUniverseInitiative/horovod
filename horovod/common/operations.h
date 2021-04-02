@@ -109,6 +109,13 @@ int horovod_reduce_op_sum();
 // C interface to return value of the ReduceOp::ADASUM enum field.
 int horovod_reduce_op_adasum();
 
+#if HAVE_SUBCOMM
+// C interface to initialize the process groups, i.e. NCCL sub-communicators
+int horovod_nccl_create_process_groups(std::vector<std::vector<int32_t>>);
+
+// C interface to reset the process groups, i.e. NCCL sub-communicators
+int horovod_nccl_shutdown();
+#endif
 }
 
 Status EnqueueTensorAllreduce(std::shared_ptr<OpContext> context,
@@ -120,7 +127,7 @@ Status EnqueueTensorAllreduce(std::shared_ptr<OpContext> context,
                               ReduceOp reduce_op = ReduceOp::SUM,
                               double prescale_factor = 1.0,
                               double postscale_factor = 1.0,
-                              Communicator comm = Communicator::GLOBAL);
+			      int proc_group = 0);
 
 Status EnqueueTensorAllreduces(std::vector<std::shared_ptr<OpContext>>& contexts,
                                std::vector<std::shared_ptr<Tensor>>& tensors,
@@ -131,32 +138,37 @@ Status EnqueueTensorAllreduces(std::vector<std::shared_ptr<OpContext>>& contexts
                                std::vector<StatusCallback>& callbacks,
                                ReduceOp reduce_op = ReduceOp::SUM,
                                double prescale_factor = 1.0,
-                               double postscale_factor = 1.0);
+                               double postscale_factor = 1.0,
+			       int proc_group = 0);
 
 Status EnqueueTensorAllgather(std::shared_ptr<OpContext> context,
                               std::shared_ptr<Tensor> tensor,
                               std::shared_ptr<ReadyEvent> ready_event,
                               const std::string name, const int device,
-                              StatusCallback callback);
+                              StatusCallback callback,
+			      int proc_group);
 
 Status EnqueueTensorBroadcast(std::shared_ptr<OpContext> context,
                               std::shared_ptr<Tensor> tensor,
                               std::shared_ptr<Tensor> output, int root_rank,
                               std::shared_ptr<ReadyEvent> ready_event,
                               const std::string name, const int device,
-                              StatusCallback callback);
+                              StatusCallback callback,
+			      int proc_group);
 
 Status EnqueueTensorAlltoall(std::shared_ptr<OpContext> context,
                              std::shared_ptr<Tensor> tensor,
                              std::shared_ptr<Tensor> splits,
                              std::shared_ptr<ReadyEvent> ready_event,
                              const std::string name, const int device,
-                             StatusCallback callback);
+                             StatusCallback callback,
+			     int proc_group);
 
 Status EnqueueJoin(std::shared_ptr<OpContext> context,
                               std::shared_ptr<ReadyEvent> ready_event,
                               const std::string name, const int device,
-                              StatusCallback callback);
+                              StatusCallback callback,
+			      int proc_group);
 
 } // namespace common
 } // namespace horovod

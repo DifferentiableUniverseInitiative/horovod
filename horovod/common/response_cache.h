@@ -45,7 +45,9 @@ struct TensorParams {
 class ResponseCache {
 public:
   ResponseCache() = default;
-  ResponseCache(const ResponseCache&) = delete;
+  // Modification IDRIS . TO CHECK IF VAID.
+  // ResponseCache(const ResponseCache&) = delete;
+  // Fin Modification IDRIS 
 
   enum CacheState { MISS = 0, HIT = 1, INVALID = 2 };
 

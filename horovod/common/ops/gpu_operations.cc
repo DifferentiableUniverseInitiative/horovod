@@ -21,12 +21,53 @@
 
 #include <thread>
 
+#include "../logging.h"
+
 namespace horovod {
 namespace common {
 
 GPUOpContext::GPUOpContext(GPUContext* context, HorovodGlobalState* global_state)
-    : gpu_context_(context), global_state_(global_state) {}
+    : gpu_context_(context), global_state_(global_state) {
+  LOG(DEBUG, "GPUOpContext::GPUOpContext() entered.");
+}
 
+#if HAVE_SUBCOMM
+void GPUOpContext::InitGPU(const std::vector<TensorTableEntry>& entries) {
+  LOG(DEBUG, "GPUOpContext::InitGPU() OLD VERSION ERROR !!!.");
+}
+
+void GPUOpContext::InitGPU(const std::vector<TensorTableEntry>& entries, int iComm) {
+  LOG(DEBUG, "GPUOpContext::InitGPU() entered.");
+  auto& first_entry = entries[0];
+  LOG(DEBUG, "GPUOpContext::InitGPU() device = " << first_entry.device);
+  gpu_context_->SetDevice(first_entry.device);
+  LOG(DEBUG, "GPUOpContext::InitGPU() after SetDevice.");
+
+  // Ensure stream is in the map before executing reduction.
+  gpuStream_t& stream = gpu_context_->streams[iComm][first_entry.device];
+  LOG(DEBUG, "GPUOpContext::InitGPU() after setting stream.");
+  if (stream == nullptr) {
+    gpu_context_->StreamCreate(&stream);
+  }
+  LOG(DEBUG, "GPUOpContext::InitGPU() ended.");
+}
+
+void GPUOpContext::InitGPUQueue(const std::vector<TensorTableEntry>& entries, const Response& response) {
+  LOG(DEBUG, "GPUOpContext::InitGPUQueue() OLD VERSION ERROR !!!.");
+}
+
+void GPUOpContext::InitGPUQueue(const std::vector<TensorTableEntry>& entries, const Response& response, int iComm) {
+  LOG(DEBUG, "GPUOpContext::InitGPUQueue()() entered.");
+  event_queue = std::queue<std::pair<std::string, gpuEvent_t>>();
+  stream = &gpu_context_->streams[iComm][entries[0].device];
+  LOG(DEBUG, "GPUOpContext::InitGPUQueue()() after streams.");
+
+  if (global_state_->timeline.Initialized()) {
+    gpu_context_->RecordEvent(event_queue, QUEUE, *stream);
+  }
+  LOG(DEBUG, "GPUOpContext::InitGPUQueue()() ended.");
+}
+#else
 void GPUOpContext::InitGPU(const std::vector<TensorTableEntry>& entries) {
   auto& first_entry = entries[0];
   gpu_context_->SetDevice(first_entry.device);
@@ -46,6 +87,7 @@ void GPUOpContext::InitGPUQueue(const std::vector<TensorTableEntry>& entries, co
     gpu_context_->RecordEvent(event_queue, QUEUE, *stream);
   }
 }
+#endif
 
 Status GPUOpContext::FinalizeGPUQueue(const std::vector<TensorTableEntry>& entries, bool free_host_buffer /*= true*/,
                                       const std::function<void()>& error_check_callback) {

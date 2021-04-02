@@ -58,8 +58,14 @@ public:
         global_state_(global_state),
         communicator_type_(communicator_type){};
 
+#if HAVE_SUBCOMM
+  void InitNCCLComm(const std::vector<TensorTableEntry>& entries,
+                    const std::vector<int32_t>& nccl_device_map,
+		    int iComm);
+#else
   void InitNCCLComm(const std::vector<TensorTableEntry>& entries,
                     const std::vector<int32_t>& nccl_device_map);
+#endif
 
   void AsyncErrorCheck();
 
@@ -67,14 +73,63 @@ public:
   std::function<void()> error_check_callback_;
 
 private:
+#if HAVE_SUBCOMM
+  void PopulateNCCLCommStrategy(int& nccl_rank, int& nccl_size,
+                                Communicator& nccl_id_bcast_comm, 
+				int iComm);
+#else
   void PopulateNCCLCommStrategy(int& nccl_rank, int& nccl_size,
                                 Communicator& nccl_id_bcast_comm);
+#endif
 
   NCCLContext* nccl_context_;
   HorovodGlobalState* global_state_;
   horovod::common::Communicator communicator_type_;
 };
 
+#if HAVE_SUBCOMM
+class NCCLAllreduce : public GPUAllreduce {
+public:
+  NCCLAllreduce(NCCLContext* nccl_context, GPUContext* gpu_context,
+                HorovodGlobalState* global_state,
+		int iComm,
+                horovod::common::Communicator communicator_type = Communicator::GLOBAL)
+      : GPUAllreduce(gpu_context, global_state),
+        nccl_context_(nccl_context),
+        nccl_op_context_(nccl_context, global_state, communicator_type),
+        global_state_(global_state){};
+
+  Status Execute(std::vector<TensorTableEntry>& entries,
+                 const Response& response, int iComm) ;
+  Status Execute(std::vector<TensorTableEntry>& entries,
+                 const Response& response) override;
+
+protected:
+  NCCLContext* nccl_context_;
+  NCCLOpContext nccl_op_context_;
+  HorovodGlobalState* global_state_;
+};
+
+class NCCLBroadcast : public GPUBroadcast {
+public:
+  NCCLBroadcast(NCCLContext* nccl_context, GPUContext* gpu_context,
+                HorovodGlobalState* global_state, int iComm)
+      : GPUBroadcast(gpu_context, global_state),
+        nccl_context_(nccl_context),
+        nccl_op_context_(nccl_context, global_state, Communicator::GLOBAL),
+        global_state_(global_state){};
+
+  Status Execute(std::vector<TensorTableEntry>& entries,
+                 const Response& response, int iComm);
+  Status Execute(std::vector<TensorTableEntry>& entries,
+                 const Response& response) override;
+
+protected:
+  NCCLContext* nccl_context_;
+  NCCLOpContext nccl_op_context_;
+  HorovodGlobalState* global_state_;
+};
+#else
 class NCCLAllreduce : public GPUAllreduce {
 public:
   NCCLAllreduce(NCCLContext* nccl_context, GPUContext* gpu_context,
@@ -111,7 +166,33 @@ protected:
   NCCLOpContext nccl_op_context_;
   HorovodGlobalState* global_state_;
 };
+#endif
 
+#if HAVE_SUBCOMM
+class NCCLAlltoall : public GPUAlltoall {
+public:
+  NCCLAlltoall(NCCLContext* nccl_context, GPUContext* gpu_context,
+               HorovodGlobalState* global_state, int iComm)
+      : GPUAlltoall(gpu_context, global_state),
+        nccl_context_(nccl_context),
+        nccl_op_context_(nccl_context, global_state, Communicator::GLOBAL),
+        global_state_(global_state){};
+
+  Status Execute(std::vector<TensorTableEntry>& entries,
+                 const Response& response, int iComm) override;
+  Status Execute(std::vector<TensorTableEntry>& entries,
+                 const Response& response) override;
+
+  bool Enabled(const ParameterManager& param_manager,
+               const std::vector<TensorTableEntry>& entries,
+               const Response& response) const override;
+
+protected:
+  NCCLContext* nccl_context_;
+  NCCLOpContext nccl_op_context_;
+  HorovodGlobalState* global_state_;
+};
+#else
 class NCCLAlltoall : public GPUAlltoall {
 public:
   NCCLAlltoall(NCCLContext* nccl_context, GPUContext* gpu_context,
@@ -129,6 +210,56 @@ protected:
   NCCLOpContext nccl_op_context_;
   HorovodGlobalState* global_state_;
 };
+#endif
+
+#if HAVE_SUBCOMM
+#if HAVE_MPI
+class NCCLHierarchicalAllreduce : public NCCLAllreduce {
+public:
+  NCCLHierarchicalAllreduce(NCCLContext* nccl_context, MPIContext* mpi_context,
+                            GPUContext* gpu_context,
+                            HorovodGlobalState* global_state, int iComm)
+      : NCCLAllreduce(nccl_context, gpu_context, global_state, Communicator::LOCAL),
+        mpi_context_(mpi_context){};
+
+  Status Execute(std::vector<TensorTableEntry>& entries,
+                 const Response& response, int iComm) ;
+  Status Execute(std::vector<TensorTableEntry>& entries,
+                 const Response& response) override;
+
+  bool Enabled(const ParameterManager& param_manager,
+               const std::vector<TensorTableEntry>& entries,
+               const Response& response) const override;
+
+private:
+  MPIContext* mpi_context_;
+};
+#endif
+
+class NCCLAllgather : public GPUAllgather {
+public:
+  NCCLAllgather(NCCLContext* nccl_context, GPUContext* gpu_context,
+                  HorovodGlobalState* global_state, int iComm)
+      : GPUAllgather(gpu_context, global_state),
+        nccl_op_context_(nccl_context, global_state, Communicator::GLOBAL),
+        global_state_(global_state){};
+
+  Status Execute(std::vector<TensorTableEntry>& entries,
+                 const Response& response, int iComm) ;
+  Status Execute(std::vector<TensorTableEntry>& entries,
+                 const Response& response) override;
+
+  bool Enabled(const ParameterManager& param_manager,
+               const std::vector<TensorTableEntry>& entries,
+               const Response& response) const override;
+
+protected:
+  NCCLContext* nccl_context_;
+  NCCLOpContext nccl_op_context_;
+  HorovodGlobalState* global_state_;
+};
+
+#else
 
 #if HAVE_MPI
 class NCCLHierarchicalAllreduce : public NCCLAllreduce {
@@ -171,6 +302,7 @@ protected:
   NCCLOpContext nccl_op_context_;
   HorovodGlobalState* global_state_;
 };
+#endif
 
 
 } // namespace common

@@ -44,25 +44,6 @@ const std::string& DataType_Name(DataType value);
 
 std::size_t DataType_Size(DataType value);
 
-enum Communicator {
-  GLOBAL = 0,
-  LOCAL = 1,
-  CROSS = 2
-};
-
-inline std::string CommunicatorName(horovod::common::Communicator comm) {
-  switch (comm) {
-    case GLOBAL:
-      return "global";
-    case LOCAL:
-      return "local";
-    case CROSS:
-      return "cross";
-    default:
-      return "<unknown>";
-  }
-}
-
 // A Request is a message sent from a rank greater than zero to the
 // coordinator (rank zero), informing the coordinator of an operation that
 // the rank wants to do and the tensor that it wants to apply the operation to.
@@ -117,10 +98,6 @@ public:
   void set_prescale_factor(const double prescale_factor);
 
   void set_postscale_factor(const double postscale_factor);
-  
-  Communicator communicator() const;
-
-  void set_communicator(const Communicator comm);  
 
   static void ParseFromBytes(Request& request, const uint8_t* input);
 
@@ -140,7 +117,6 @@ private:
   std::vector<int64_t> tensor_shape_;
   double prescale_factor_ = 1.0;
   double postscale_factor_ = 1.0;
-  Communicator communicator_ = Communicator::GLOBAL;
 };
 
 class RequestList {
@@ -231,10 +207,6 @@ public:
 
   void set_postscale_factor(const double postscale_factor);
 
-  Communicator communicator() const;
-
-  void set_communicator(const Communicator comm);  
-
   static void ParseFromBytes(Response& response, const uint8_t* input);
 
   static void SerializeToString(const Response& response,
@@ -249,7 +221,6 @@ private:
   std::vector<int64_t> tensor_sizes_;
   double prescale_factor_ = 1.0;
   double postscale_factor_ = 1.0;
-  Communicator communicator_ = Communicator::GLOBAL;
 };
 
 class ResponseList {

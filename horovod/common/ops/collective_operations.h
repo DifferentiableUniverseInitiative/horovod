@@ -198,6 +198,9 @@ public:
   virtual Status Execute(std::vector<TensorTableEntry>& entries,
                          const Response& response) = 0;
 
+  virtual Status Execute(std::vector<TensorTableEntry>& entries,
+                         const Response& response, int iComm) = 0;
+
   virtual bool Enabled(const ParameterManager& param_manager,
                        const std::vector<TensorTableEntry>& entries,
                        const Response& response) const = 0;
@@ -209,12 +212,20 @@ protected:
                                 std::vector<T>& rdispls,
                                 std::vector<T>& sendcounts,
                                 std::vector<T>& recvcounts) {
+#if HAVE_MPI
+    auto world_size = global_state_->controller[0]->GetSize();
+#else
     auto world_size = global_state_->controller->GetSize();
+#endif
 
     const auto& splits = e.splits;
     std::vector<int32_t> recvsplits;
     // Perform alltoall of splits to get expeceted receive splits
+#if HAVE_MPI
+    global_state_->controller[0]->AlltoallGetRecvSplits(splits, recvsplits);
+#else
     global_state_->controller->AlltoallGetRecvSplits(splits, recvsplits);
+#endif
 
     // Every tensor participating in Alltoall operation may have different
     // first dimension size, but the rest of dimensions are same for all

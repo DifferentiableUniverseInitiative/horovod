@@ -19,9 +19,9 @@ from mpi4py import MPI
 
 import atexit
 import ctypes
+from ctypes import *
 
 from horovod.common import util as util
-
 
 class HorovodBasics(object):
     """Wrapper class for the basic Horovod API."""
@@ -30,9 +30,18 @@ class HorovodBasics(object):
         full_path = util.get_extension_full_path(pkg_path, *args)
         self.MPI_LIB_CTYPES = ctypes.CDLL(full_path, mode=ctypes.RTLD_GLOBAL)
 
+        print("full_path = ", full_path)
+
         self.Average = self.MPI_LIB_CTYPES.horovod_reduce_op_average()
         self.Sum = self.MPI_LIB_CTYPES.horovod_reduce_op_sum()
         self.Adasum = self.MPI_LIB_CTYPES.horovod_reduce_op_adasum()
+
+        self.BOOST_NCCL_LIB_CTYPES = ctypes.CDLL("/gpfswork/idris/hpe/shpe033/meshtensorflow_project/test/boost_nccl.so")
+        if self.BOOST_NCCL_LIB_CTYPES is None:
+            print("self.BOOST_NCCL_LIB_CTYPES is None error.")
+        else:
+            print("self.BOOST_NCCL_LIB_CTYPES is created.")
+
 
     def init(self, comm=None):
         """A function that initializes Horovod.
@@ -70,6 +79,7 @@ class HorovodBasics(object):
 
     def shutdown(self):
         """A function that shuts Horovod down."""
+        print("\nHorovodBasics.shutdown\n")
         self.MPI_LIB_CTYPES.horovod_shutdown()
 
     def is_initialized(self):
@@ -137,6 +147,17 @@ class HorovodBasics(object):
             raise ValueError(
                 'Horovod has not been initialized; use hvd.init().')
         return rank
+
+    def process_group(self, index):
+        """A function that returns the process_groups 
+
+        Returns:
+          An integer scalar with the Horovod rank of the calling process.
+        """
+        print("\n process_group() entered.\n")
+        pg = self.MPI_LIB_CTYPES.horovod_process_group(index)
+        print("\n process_group() returning.\n")
+        return pg
 
     def local_rank(self):
         """A function that returns the local Horovod rank of the calling process, within the
@@ -260,3 +281,107 @@ class HorovodBasics(object):
           A boolean value indicating whether ROCm support was compiled.
         """
         return bool(self.MPI_LIB_CTYPES.horovod_rocm_built())
+
+
+    def nccl_create_process_groups(self, process_groups=None):
+        """A function that stores the process groups which will be used for NCCL communicators
+
+        Args:
+          process_groups: List specifying lists of ranks for the communicator like [[1,2], [4,9,2,3]]
+        """
+        #self.boost_nccl_object = self.BOOST_NCCL_LIB_CTYPES.boost_nccl()
+        #self.MPI_LIB_CTYPES.horovod_nccl_create_process_groups(self.boost_nccl_object.create_process_groups(process_groups))
+        print("\nnccl_create_process_groups in basics.py entered\n")
+        self.process_groups = process_groups
+
+        print("nccl_create_process_groups in basics.py before import\n")
+        import boost_nccl
+        print("nccl_create_process_groups in basics.py after import\n")
+        try:
+            self.boost_nccl_object = boost_nccl.boost_nccl()
+            #self.boost_nccl_object = self.BOOST_NCCL_LIB_CTYPES.boost_nccl()
+            #self.boost_nccl_object = self.MPI_LIB_CTYPES.wrapper_boost_nccl()
+        except Exception as e:
+            print("nccl_create_process_groups exception in creating  boost_nccl.boost_nccl()\n")
+            print(e)
+            return
+        print("nccl_create_process_groups in basics.py created self.boost_nccl_object.")
+        try:
+            self.boost_nccl_object.create_process_groups(process_groups)
+        except Exception as e:
+            #print("\nnccl_create_process_groups exception : self.boost_nccl_object.create_process_groups()")
+            #print(e)
+            return
+        print("nccl_create_process_groups in basics.py ended.\n");
+
+    def get_process_groups(self):
+        """A function that stores the process groups which will be used for NCCL communicators
+
+        Args:
+          process_groups: List specifying lists of ranks for the communicator like [[1,2], [4,9,2,3]]
+        """
+        #self.boost_nccl_object = self.BOOST_NCCL_LIB_CTYPES.boost_nccl()
+        #self.MPI_LIB_CTYPES.horovod_nccl_create_process_groups(self.boost_nccl_object.create_process_groups(process_groups))
+        print("\nget_process_groups in basics.py entered +++++\n")
+        wg = list(range(0, self.size()))
+        print("get_process_groups in basics.py after wg +++++\n")
+        pgs = self.process_groups
+        print("get_process_groups in basics.py after pgs  +++++\n")
+        pgs.insert(0, wg)
+        print("get_process_groups in basics.py after insertion in pgs  +++++\n")
+        return pgs
+
+        ## The code below does not work. To abalyze.
+        import boost_nccl
+        print("get_process_groups in basics.py boost_nccl imported\n")
+        try:
+            self.boost_nccl_object = boost_nccl.boost_nccl()
+            #self.boost_nccl_object = self.BOOST_NCCL_LIB_CTYPES.boost_nccl()
+            #self.boost_nccl_object = self.MPI_LIB_CTYPES.wrapper_boost_nccl()
+        except Exception as e:
+            print("get_process_groups exception : self.BOOST_NCCL_LIB_CTYPES.boost_nccl()\n")
+            print(e)
+            return
+        print("get_process_groups() in basics.py created self.boost_nccl_object.")
+        try:
+            pg = self.boost_nccl_object.get_process_groups()
+        except Exception as e:
+            print("get_process_groups exception : self.boost_nccl_object.get_process_groups()")
+            print(e)
+            return
+        print("get_process_groups() in basics.py ended.\n");
+        return pg
+
+    def wrapper_dummy_fn(self):
+        """A function that stores the process groups which will be used for NCCL communicators
+
+        Args:
+          process_groups: List specifying lists of ranks for the communicator like [[1,2], [4,9,2,3]]
+        """
+        #self.boost_nccl_object = self.BOOST_NCCL_LIB_CTYPES.boost_nccl()
+        #self.MPI_LIB_CTYPES.horovod_nccl_create_process_groups(self.boost_nccl_object.create_process_groups(process_groups))
+        print("wrapper_dummy_fn in basics.py entered")
+        try:
+            self.boost_nccl_object = self.MPI_LIB_CTYPES.horovod_wrapper_boost_nccl();
+            #self.boost_nccl_object = self.MPI_LIB_CTYPES.horovod_wrapper_dummy_fn
+            #self.boost_nccl_object = self.MPI_LIB_CTYPES.wrapper_boost_nccl()
+        except Exception as e:
+            print("wrapper_dummy_fn exception : self.MPI_LIB_CTYPES.wrapper_dummy_fn()")
+            print(e)
+            return
+        print("wrapper_dummy_fn in basics.py created self.boost_nccl_object.")
+        """
+        try:
+            self.boost_nccl_object.create_process_groups(process_groups)
+        except Exception as e:
+            print("nccl_create_process_groups exception : self.boost_nccl_object.create_p_g()")
+            print(e)
+            return
+        print("nccl_create_process_groups in basics.py called self.boost_nccl_object.create_process_groups.")
+        """
+
+
+    def nccl_shutdown(self):
+        """A function that shuts NCCL down."""
+        self.MPI_LIB_CTYPES.horovod_nccl_shutdown()
+

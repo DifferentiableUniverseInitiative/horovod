@@ -27,6 +27,10 @@
 namespace horovod {
 namespace common {
 
+MPI_Comm* GetMpiWorldComm() ;
+void SetMpiWorldComm(MPI_Comm* comm) ;
+
+
 MPI_Datatype MPIContext::GetMPIDataType(const std::shared_ptr<Tensor> tensor) {
   return GetMPIDataType(tensor->dtype());
 }
@@ -86,7 +90,12 @@ int MPIContext::GetMPITypeSize(DataType dtype) {
 void MPIContext::Initialize(const std::vector<int>& ranks,
                             MPIContextManager& ctx_manager) {
 
+  LOG(DEBUG, "MPIContext::Initialize() entered, ranks.size = " << ranks.size());
+  for (int i=0; i<ranks.size(); i++)
+    LOG(DEBUG,"MPIContext::Initialize() ranks[" << i << "] = " << ranks[i]);
+
   if (!enabled_) {
+    LOG(DEBUG,"MPIContext::Initialize() !enabled_ , return.");
     return;
   }
   // Initialize MPI if it was not initialized. This must happen on the
@@ -124,36 +133,79 @@ void MPIContext::Initialize(const std::vector<int>& ranks,
   }
 
   if (!ranks.empty()) {
+    LOG(DEBUG) << "MPIContext::Initialize()  ranks is NOT empty.";
+    for(int i=0; i<ranks.size(); i++)
+      LOG(TRACE, "MPI_Group ranks[" << i << "] = " << ranks[i]);
+
     MPI_Group world_group;
-    MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+    if(MPI_Comm_group(MPI_COMM_WORLD, &world_group) != MPI_SUCCESS)
+      LOG(WARNING, "MPI_Comm_group error");
     MPI_Group work_group;
-    MPI_Group_incl(world_group, ranks.size(), ranks.data(), &work_group);
-    MPI_Comm_create_group(MPI_COMM_WORLD, work_group, 0, &(mpi_comm));
+    if(MPI_Group_incl(world_group, ranks.size(), ranks.data(), &work_group) != MPI_SUCCESS)
+      LOG(WARNING, "MPI_Group_incl error");
+    else
+      LOG(TRACE, "MPI_Group_incl OK");
+
+    if(mpi_comm != MPI_COMM_NULL)
+      LOG(WARNING, "MPI_Comm_create_group error, ranks not empty but mpi_comm != MPI_COMM_NULL");
+
+    if(MPI_Comm_create_group(MPI_COMM_WORLD, work_group, 0, &(mpi_comm)) != MPI_SUCCESS)
+      LOG(WARNING, "MPI_Comm_create_group error");
+    else
+      LOG(TRACE, "MPI_Comm_create_group OK");
     if (mpi_comm == MPI_COMM_NULL) {
       LOG(WARNING) << "Unable to create Horovod communicator, using "
                       "MPI_COMM_WORLD instead.";
       mpi_comm = MPI_COMM_WORLD;
     }
+    else
+      LOG(DEBUG, "MPIContext::Initialize()  MPI_Group created.");
     MPI_Group_free(&world_group);
     MPI_Group_free(&work_group);
   } else if (!mpi_comm) {
+    LOG(DEBUG, "MPIContext::Initialize() !mpi_comm");
+    MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
+    SetMpiWorldComm(&mpi_comm);
+    mpi_cookie = 4444;
+    mpi_comm_ptr = &mpi_comm;
+    LOG(DEBUG, "MPIContext::Initialize() !mpi_comm = true, Set WorldMpiComm, mpi_comm_ptr and cookie.");
+  } else if (mpi_comm == MPI_COMM_NULL) {
     // No ranks were given and no communicator provided to horovod_init() so use
     // MPI_COMM_WORLD
-    LOG(DEBUG) << "Using MPI_COMM_WORLD as a communicator.";
+    LOG(DEBUG, "MPIContext::Initialize() mpi_comm == MPI_COMM_NULL, Using MPI_COMM_WORLD as a communicator.");
+    // mpi_comm = MPI_COMM_WORLD;
+    MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
+    SetMpiWorldComm(&mpi_comm);
+    mpi_cookie = 5555;
+    mpi_comm_ptr = &mpi_comm;
+    LOG(DEBUG, "MPIContext::Initialize() mpi_comm == MPI_COMM_NULL, Set WorldMpiComm, mpi_comm_ptr and cookie.");
+    // MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
+  }
+  else {
+    // No ranks were given and no communicator provided to horovod_init() so use
+    // MPI_COMM_WORLD
+    LOG(DEBUG, "MPIContext::Initialize() mpi_comm was previously intialized ! ERROR !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
   }
 
   // Create local comm, Determine local rank by querying the local communicator.
-  MPI_Comm_split_type(mpi_comm, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL,
-                      &local_comm);
+  if(MPI_Comm_split_type(mpi_comm, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL,
+                      &local_comm) != MPI_SUCCESS)
+    LOG(WARNING, "MPI_Comm_split local_comm error");
+  else
+    LOG(TRACE, "MPI_Comm_split local_comm OK");
 
   // Get local rank and world rank for cross comm establishment.
   int local_rank, world_rank;
   MPI_Comm_rank(mpi_comm, &world_rank);
   MPI_Comm_rank(local_comm, &local_rank);
+  LOG(DEBUG) << "MPIContext::Initialize() world_rank = " << world_rank << ", local_rank = " << local_rank;
 
   // Create cross node communicator.
-  MPI_Comm_split(mpi_comm, local_rank, world_rank, &cross_comm);
+  if(MPI_Comm_split(mpi_comm, local_rank, world_rank, &cross_comm) != MPI_SUCCESS)
+    LOG(WARNING, "MPI_Comm_split cross_comm error");
+  else
+    LOG(TRACE, "MPI_Comm_split cross_comm OK");
 
   // Create custom MPI float16 data type.
   MPI_Type_contiguous(2, MPI_BYTE, &mpi_float16_t);
