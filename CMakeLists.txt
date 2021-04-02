@@ -96,7 +96,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -undefined dynamic_lookup -Wl,-exported_symbols_list,${CMAKE_SOURCE_DIR}/horovod.exp")
     set(CMAKE_MACOSX_RPATH TRUE)
 else()
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--version-script=${CMAKE_SOURCE_DIR}/horovod.lds -Wl,-Bsymbolic-functions -Wl,-z,relro,-z,now")
+	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -L/gpfslocalsup/spack_soft/boost/1.70.0/gcc-8.3.1-ac7s6bl2rvxgv7kt5dhqujijptqob26c/lib -lboost_python38 -lboost_numpy38 -lboost_system -Wl,--version-script=${CMAKE_SOURCE_DIR}/horovod.lds -Wl,-Bsymbolic-functions -Wl,-z,relro,-z,now")
 endif()
 # GPU Operations
 set(HOROVOD_GPU $ENV{HOROVOD_GPU})
@@ -125,6 +125,13 @@ else()
     set(PY_EXE ${PYTHON_EXECUTABLE})
 endif()
 message(STATUS "Using command ${PY_EXE}")
+
+# SUBCOMMUNICATORS
+add_definitions(-DHAVE_SUBCOMM=1)
+set(HAVE_SUBCOMM TRUE)
+
+add_definitions(-DNCCL_P2P_SUPPORTED)
+set(NCCL_P2P_SUPPORTED TRUE)
 
 # MPI
 if (NOT "$ENV{HOROVOD_WITHOUT_MPI}" STREQUAL "1")

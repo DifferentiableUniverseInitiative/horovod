@@ -886,6 +886,7 @@ Output
 
 #if HAVE_SUBCOMM
 
+#if HAVE_SUBCOMM_FUNCTOR
 using CPUDevice = Eigen::ThreadPoolDevice;
 using GPUDevice = Eigen::GpuDevice;
 
@@ -1013,7 +1014,7 @@ Output
     output:    The collected tensor data from all workers.
 )doc");
 
-#else	// HAVE_SUBCOMM
+#else 	//HAVE_SUBCOMM_FUNCTOR
 
 class HorovodAlltoallOp : public AsyncOpKernel {
 public:
@@ -1021,6 +1022,82 @@ public:
       : AsyncOpKernel(context) {
     OP_REQUIRES_OK(context, context->GetAttr("ignore_name_scope", &ignore_name_scope_));
     OP_REQUIRES_OK(context, context->GetAttr("process_group", &process_group_));
+  }
+
+  void ComputeAsync(OpKernelContext* context, DoneCallback done) override {
+    OP_REQUIRES_OK_ASYNC(context, ConvertStatus(common::CheckInitialized()),
+                         done);
+
+    auto node_name = name();
+    if (ignore_name_scope_) {
+      auto pos = node_name.find_last_of('/');
+      if (pos != std::string::npos) {
+        node_name = node_name.substr(pos + 1);
+      }
+    }
+    auto device = GetDeviceID(context);
+    auto tensor = context->input(0);
+    auto splits = context->input(1);
+    auto ready_event = std::shared_ptr<common::ReadyEvent>(RecordReadyEvent(context));
+    auto hvd_context = std::make_shared<TFOpContext>(context);
+    auto hvd_tensor = std::make_shared<TFTensor>(tensor);
+    auto splits_tensor = std::make_shared<TFTensor>(splits);
+    auto enqueue_result = EnqueueTensorAlltoall(
+        hvd_context, hvd_tensor, splits_tensor, ready_event, node_name, device,
+        [context, done](const common::Status& status) {
+          context->SetStatus(ConvertStatus(status));
+          done();
+        }, process_group_);
+    OP_REQUIRES_OK_ASYNC(context, ConvertStatus(enqueue_result), done);
+  }
+private:
+  bool ignore_name_scope_;
+  int process_group_;
+}; // namespace tensorflow
+REGISTER_KERNEL_BUILDER(Name("HorovodAlltoall").Device(DEVICE_CPU),
+                        HorovodAlltoallOp);
+
+#if HOROVOD_GPU_ALLTOALL
+REGISTER_KERNEL_BUILDER(Name("HorovodAlltoall").Device(DEVICE_GPU).HostMemory("splits"),
+                        HorovodAlltoallOp);
+#endif
+
+REGISTER_OP("HorovodAlltoall")
+    .Attr(
+        "T: {uint8, int8, uint16, int16, int32, int64, float16, float32, float64, bool, string}")
+    .Attr("ignore_name_scope: bool = False")
+    .Attr("process_group: int")
+    .Input("tensor: T")
+    .Input("splits: int32")
+    .Output("output: T")
+    .SetShapeFn([](shape_inference::InferenceContext* c) {
+      shape_inference::ShapeHandle output;
+      TF_RETURN_IF_ERROR(
+          c->ReplaceDim(c->input(0), 0, c->UnknownDim(), &output));
+      c->set_output(0, output);
+      return Status::OK();
+    })
+    .Doc(R"doc(
+Perform an MPI Alltoall on a tensor.
+
+Arguments
+    tensor:     A tensor to be distributed with all to all
+    splits: A list of integers in rank order describing how many elements
+                in `tensor` to send to each worker.
+
+Output
+    output:    The collected tensor data from all workers.
+)doc");
+
+#endif	// SUBCOMM but NO FUNCTOR
+
+#else	// HAVE_SUBCOMM
+
+class HorovodAlltoallOp : public AsyncOpKernel {
+public:
+  explicit HorovodAlltoallOp(OpKernelConstruction* context)
+      : AsyncOpKernel(context) {
+    OP_REQUIRES_OK(context, context->GetAttr("ignore_name_scope", &ignore_name_scope_));
   }
 
   void ComputeAsync(OpKernelContext* context, DoneCallback done) override {
@@ -1064,7 +1141,6 @@ REGISTER_OP("HorovodAlltoall")
     .Attr(
         "T: {uint8, int8, uint16, int16, int32, int64, float16, float32, float64, bool, string}")
     .Attr("ignore_name_scope: bool = False")
-    .Attr("process_group: int")
     .Input("tensor: T")
     .Input("splits: int32")
     .Output("output: T")
