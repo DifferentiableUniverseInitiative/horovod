@@ -1,0 +1,38 @@
+#!/bin/bash
+#SBATCH --job-name=test_mtf
+##########SBATCH -C v100-16g
+#SBATCH --nodes=1                    # nombre de noeud
+#SBATCH --ntasks-per-node=4          # nombre de tache MPI par noeud (= nombre de GPU par noeud)
+#SBATCH --gres=gpu:4                 # nombre de GPU par noeud (max 8 avec gpu_p2)
+#SBATCH --cpus-per-task=10
+#SBATCH --hint=nomultithread
+#SBATCH --output=log.out
+#SBATCH --time=00:08:00 # maximum allocation time
+#SBATCH --account hpe@gpu
+
+#
+# Faire d'abord conda activate avant de lancer : sbatch job.slurm
+#
+
+#module load python/3.8.2
+#module load cuda/10.2
+module load flatbuffers/1.11.0
+#module load nccl/2.7.8-1-cuda   
+#module load openmpi/4.0.2-cuda
+module load boost/1.70.0             
+#module load cudnn/10.1-v7.5.1.10 
+module load tensorflow-gpu/py3/2.3.1
+
+conda activate mtf 
+
+export LD_LIBRARY_PATH=/gpfswork/idris/hpe/shpe033/horovod-v0.21.1/horovod/tensorflow:/gpfslocalsup/spack_soft/boost/1.70.0/gcc-8.3.1-ac7s6bl2rvxgv7kt5dhqujijptqob26c/lib:/gpfswork/idris/hpe/shpe033/meshtensorflow_project/boost_nccl:/gpfswork/idris/hpe/shpe033/meshtensorflow_project/install_env/cuda:$LD_LIBRARY_PATH
+
+#/gpfslocalsup/spack_soft/openmpi/4.0.2/gcc-8.3.1-flj34kfbejrt6iz2aywdf4ebchnyimwn/lib:/gpfswork/idris/hpe/shpe033/.conda//envs/mtf/lib/python3.8/site-packages/horovod-0.21.1-py3.8-linux-x86_64.egg/horovod/tensorflow:/gpfswork/idris/hpe/shpe033/meshtensorflow_project/install_env/cuda:/gpfswork/idris/hpe/shpe033/meshtensorflow_project/install_env/cuda:/gpfslocalsup/spack_soft/gcc/7.3.0/gcc-8.3.1-vqzoua4fyg6e5jiz3vhkpjb4qtofjfrf/lib64:/gpfslocalsup/spack_soft/gcc/7.3.0/gcc-8.3.1-vqzoua4fyg6e5jiz3vhkpjb4qtofjfrf/lib:/gpfslocalsup/spack_soft/flatbuffers/1.11.0/gcc-9.1.0-jtgrepiqbrbzlsjawqlmprdmcqp5drqu/lib64:/gpfslocalsup/spack_soft/gcc/9.1.0/gcc-8.3.1-dsq3humdshff2skbethmwa2pg4s2f7rz/lib64:/gpfslocalsup/spack_soft/gcc/9.1.0/gcc-8.3.1-dsq3humdshff2skbethmwa2pg4s2f7rz/lib:/gpfslocalsup/spack_soft/nccl/2.7.8-1/gcc-8.3.1-35k2jug2q6wxxq5q7nj5fovhti74uskf/lib:/gpfslocalsys/cuda/10.2/nvvm/lib64:/gpfslocalsys/cuda/10.2/extras/CUPTI/lib64:/gpfslocalsys/cuda/10.2/lib64:/gpfslocalsys/cuda/10.2/samples/common/lib/linux/x86_64:/gpfslocalsys/cuda/10.2/targets/x86_64-linux/lib:/gpfslocalsup/spack_soft/boost/1.70.0/intel-19.0.4-5zoh2xvpvjl3ecgofb5t75zy2tgasuxd/lib:/gpfslocalsys/intel/parallel_studio_xe_2019_update4_cluster_edition/compilers_and_libraries_2019.4.243/linux/compiler/lib/intel64_lin:/gpfslocalsys/slurm/current/lib/slurm:/gpfslocalsys/slurm/current/lib
+
+
+export HOROVOD_LOG_LEVEL=trace
+
+cd /gpfswork/idris/hpe/shpe033/meshtensorflow_project/test
+
+set -x # activating echo of launched commands
+srun -u --mpi=pmi2 -o mtf_%t.log python /gpfswork/idris/hpe/shpe033/meshtensorflow_project/test/test_mtf.py

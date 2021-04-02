@@ -1,0 +1,13 @@
+export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:/gpfslocalsup/spack_soft/python/3.8.6/gcc-8.3.1-rmwrkoturjccinljag6fwndw7fsgpepg/include/python3.8:/gpfslocalsys/cuda/10.2/include
+export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:/gpfslocalsup/spack_soft/python/3.8.6/gcc-8.3.1-rmwrkoturjccinljag6fwndw7fsgpepg/include/python3.8:/gpfslocalsys/cuda/10.2/include
+
+module load cuda/10.2
+module load nccl/2.7.8-1-cuda
+module load openmpi/4.0.2
+
+export LD_LIBRARY_PATH=/gpfswork/idris/hpe/shpe033/.conda/envs/mtf/lib/python3.8/site-packages/tensorflow:/linkhome/idris/genhpe/shpe033/.conda/envs/mtf/lib/python3.8/site-packages/horovod-0.21.1-py3.8-linux-x86_64.egg/horovod/tensorflow:/gpfslocalsup/spack_soft/boost/1.70.0/gcc-8.3.1-ac7s6bl2rvxgv7kt5dhqujijptqob26c/lib:/gpfswork/idris/hpe/shpe033/meshtensorflow_project/boost_nccl:/gpfswork/idris/hpe/shpe033/meshtensorflow_project/install_env/cuda:$LD_LIBRARY_PATH
+
+gcc -Wall -shared -fPIC -DHAVE_MPI -DHAVE_GPU -DHAVE_NCCL -DHAVE_SUBCOMM -I/gpfslocalsup/spack_soft/openmpi/4.0.2/gcc-8.3.1-pwznunop7kpwwhguizfpaefbtz32qvh6/include -I/gpfswork/idris/hpe/shpe033/.conda/envs/mtf/lib/python3.8/site-packages/tensorflow/include -I/gpfswork/idris/hpe/shpe033/horovod-v0.21.1/horovod/common -I/gpfslocalsup/spack_soft/boost/1.70.0/gcc-8.3.1-ac7s6bl2rvxgv7kt5dhqujijptqob26c/include -L/gpfslocalsup/spack_soft/boost/1.70.0/gcc-8.3.1-ac7s6bl2rvxgv7kt5dhqujijptqob26c/lib -lboost_python38 -lboost_numpy38 -lboost_system mpi_lib.so -o boost_nccl.so boost_nccl.cc
+
+#ln -s boot_nccl.so ../test
+

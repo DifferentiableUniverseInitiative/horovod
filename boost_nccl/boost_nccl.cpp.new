@@ -1,0 +1,68 @@
+#include <boost/python.hpp>
+#include <vector>
+#include <unordered_map>
+
+
+// C interface to initialize the process groups, i.e. NCCL sub-communicators
+extern "C" int horovod_nccl_create_process_groups(std::vector<std::vector<int32_t>> process_groups) ;
+extern "C" std::vector<std::vector<int32_t>> horovod_process_groups() ;
+/**
+int horovod_nccl_create_process_groups(std::vector<std::vector<int32_t>> process_groups) {
+	printf("horovod_nccl_create_process_groups() entered\n");
+}
+**/
+
+
+// // C interface to reset the process groups, i.e. NCCL sub-communicators
+int horovod_nccl_shutdown() {
+  return 0;
+}
+
+namespace py = boost::python;
+
+class boost_nccl{
+    public:
+	boost_nccl(){};
+	void create_process_groups(boost::python::list& pylist);
+	boost::python::list get_process_groups();
+};
+
+void boost_nccl::create_process_groups(boost::python::list& pylist) {
+	printf("boost_nccl::create_process_groups() entered\n");
+	int tmp;
+	std::vector<std::vector<int>> vecvec;
+	std::vector<int> vec;
+	for (int i = 0; i < len(pylist) ; i++){
+		vec.clear();
+		for (int j = 0; j < len(pylist[i]) ; j++){
+			tmp = boost::python::extract<int>(pylist[i][j]);
+			vec.push_back(tmp);
+		}
+		vecvec.push_back(vec);
+    	}
+	for(int i=0; i<len(pylist) ; i++)
+		for(int j=0; j<len(pylist[i]); j++)
+			printf("vecvec[%d, %d] => %d\n", i, j, vecvec[i][j]);
+	printf("boost_nccl::create_process_groups() calling horovod_nccl_create_process_groups()\n");
+	horovod_nccl_create_process_groups(vecvec);
+	printf("boost_nccl::create_process_groups() called horovod_nccl_create_process_groups()\n");
+}
+
+boost::python::list boost_nccl::get_process_groups()
+{
+	    boost::python::list pylist; // declare python list to return
+	    printf("boost_nccl::get_process_groups() calling horovod_process_groups()\n");
+	    std::vector<std::vector<int32_t>> pgs =  horovod_process_groups();
+	    printf("boost_nccl::get_process_groups() called horovod_process_groups()\n");
+	    for (int i=0; i<pgs.size(); i++) // loop over dim 0
+	    {
+		    boost::python::list tmp_list; // to temporary store 1d python list
+	            for (int j=0; j<pgs[i].size(); j++) // loop over dim 1
+	            {
+		                tmp_list.append(pgs[i][j]); // append on temporary 1d python list
+	            }
+	            pylist.append(tmp_list); // append on 2d python list
+	    }
+	    return pylist; // return 2d python list
+}
+

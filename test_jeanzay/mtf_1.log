@@ -1,0 +1,307 @@
+2021-03-30 15:28:43.118724: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+full_path =  /linkhome/idris/genhpe/shpe033/.conda/envs/mtf/lib/python3.8/site-packages/horovod-0.21.1-py3.8-linux-x86_64.egg/horovod/tensorflow/mpi_lib.cpython-38-x86_64-linux-gnu.so
+self.BOOST_NCCL_LIB_CTYPES is created.
+
+Horovod/tensorflow/__init__.py, Before import alltoall.
+
+
+Horovod/tensorflow/__init__.py, After import alltoall.
+
+[2021-03-30 15:28:48.909857: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1414] horovod_init(), nranks = 0
+[2021-03-30 15:28:48.909998: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/utils/env_parser.cc:107] Using MPI to perform controller operations.
+[2021-03-30 15:28:48.910083: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/utils/env_parser.cc:73] Using MPI to perform CPU operations.
+[2021-03-30 15:28:48.910206: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:64] [Controller::Controller, response_cache.old_capacity = 0]: 
+[2021-03-30 15:28:48.910300: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:66] [Controller::Controller, response_cache.capacity = 256]: 
+[2021-03-30 15:28:48.910413: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:68] [Controller::Controller, response_cache_.capacity = 256]: 
+[2021-03-30 15:28:48.910519: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:70] [Controller::Controller, after reset, response_cache.capacity = 0]: 
+[2021-03-30 15:28:48.910612: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.h:34] MPIController::MPIController() , MPI Controller Initialized.
+[2021-03-30 15:28:48.910714: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.h:46] MPI context enabled.
+[2021-03-30 15:28:48.910807: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:93] [MPIContext::Initialize() entered, ranks.size = 0]: 
+[2021-03-30 15:28:48.910891: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:175] [MPIContext::Initialize() mpi_comm == MPI_COMM_NULL, Using MPI_COMM_WORLD as a communicator.]: 
+[2021-03-30 15:28:48.911099: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:181] [MPIContext::Initialize() mpi_comm == MPI_COMM_NULL, Set WorldMpiComm, mpi_comm_ptr and cookie.]: 
+[2021-03-30 15:28:48.911267: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:196] [MPI_Comm_split local_comm OK]: 
+[2021-03-30 15:28:48.911367: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:202] MPIContext::Initialize() world_rank = 1, local_rank = 1
+[2021-03-30 15:28:48.911513: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:208] [MPI_Comm_split cross_comm OK]: 
+[2021-03-30 15:28:48.911625: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1307] [InitializeHorovodOnce, MPIController[0] initialized and enabled]: 
+[2021-03-30 15:28:48.911725: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1316] [InitializeHorovodOnce, nranks for controller 0 = ]: 4
+[2021-03-30 15:28:48.911840: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1323] InitializeHorovodOnce(), Pushed process_group WORLD_COMM  into nccl_context.nccl_comms.
+[2021-03-30 15:28:48.911935: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:38] [MPIController::DoInitialization(), entered.]: 
+[2021-03-30 15:28:48.912029: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:49] MPIController::DoInitialization(), Not a Coordinator : Starting Horovod with 4 processes
+[2021-03-30 15:28:50.442424: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:92] [MPIController::DoInitialization() ended.]: 
+[2021-03-30 15:28:50.521780: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1326] [InitializeHorovodOnce(), Controller[0] initialized]: 
+[2021-03-30 15:28:50.521836: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1328] [InitializeHorovodOnce(), First part of init done.]: 
+[2021-03-30 15:28:50.521902: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1336] [InitializeHorovodOnce(), in TEST , NOT is_coordinator, ret_code = 0, retbuf = -545115520]: 
+[2021-03-30 15:28:50.521959: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1338] [InitializeHorovodOnce(), in TEST , NOT is_coordinator : (mpi_ctx_.mpi_comm == horovod::common::GetMpiWorldComm() = 1]: 
+[2021-03-30 15:28:50.522020: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1355] [InitializeHorovodOnce(), First part of init done, TEST done]: 
+
+nccl_create_process_groups in basics.py entered
+
+nccl_create_process_groups in basics.py before import
+
+nccl_create_process_groups in basics.py after import
+
+nccl_create_process_groups in basics.py created self.boost_nccl_object.
+boost_nccl::create_process_groups() entered **************
+ ******* vecvec[0, 0] => 1 *******
+ ******* vecvec[0, 1] => 2 *******
+ ******* vecvec[1, 0] => 2 *******
+ ******* vecvec[1, 1] => 3 *******
+ ******* vecvec[1, 2] => 0 *******
+boost_nccl::create_process_groups() calling horovod_nccl_create_process_groups()
+[2021-03-30 15:28:50.522731: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1616] horovod_nccl_create_process_groups() entered. Nb of process_groups = 2
+[2021-03-30 15:28:50.522795: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1623] [horovod_nccl_create_process_groups() ,rank_ 1 found in process_group 0]: 
+[2021-03-30 15:28:50.522852: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1634]  horovod_nccl_create_process_groups(), Pushed process_group 0 into nccl_context.nccl_comms.
+[2021-03-30 15:28:50.522911: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1644] [horovod_nccl_create_process_groups(), before new MPIController()]: 
+[2021-03-30 15:28:50.522970: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:64] [Controller::Controller, response_cache.old_capacity = 0]: 
+[2021-03-30 15:28:50.523036: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:66] [Controller::Controller, response_cache.capacity = 256]: 
+[2021-03-30 15:28:50.523099: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:68] [Controller::Controller, response_cache_.capacity = 256]: 
+[2021-03-30 15:28:50.523159: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:70] [Controller::Controller, after reset, response_cache.capacity = 0]: 
+[2021-03-30 15:28:50.523219: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.h:34] MPIController::MPIController() , MPI Controller Initialized.
+[2021-03-30 15:28:50.523279: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1653] [horovod_nccl_create_process_groups(), after new MPIController()]: 
+[2021-03-30 15:28:50.523341: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1658] [horovod_nccl_create_process_groups(), controller[0] ]: 
+[2021-03-30 15:28:50.523400: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1660] [horovod_nccl_create_process_groups(), controller[ii] = 1. ]: 
+[2021-03-30 15:28:50.523461: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1660] [horovod_nccl_create_process_groups(), controller[ii] = 2. ]: 
+[2021-03-30 15:28:50.523521: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1664] [horovod_nccl_create_process_groups() , index = 1, size = 2]: 
+[2021-03-30 15:28:50.523583: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1625] [horovod_nccl_create_process_groups() ,rank_ 1 NOT found in process_group 1 => DOES NOT CREATE the MPIController nor NCCL_COMM]: 
+[2021-03-30 15:28:50.523652: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1670] [horovod_nccl_create_process_groups() , after creation loop, before creating thread, j=0, k=0, horovod_global.process_groups[j][k]=0]: 
+[2021-03-30 15:28:50.523712: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1670] [horovod_nccl_create_process_groups() , after creation loop, before creating thread, j=0, k=1, horovod_global.process_groups[j][k]=1]: 
+[2021-03-30 15:28:50.523773: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1670] [horovod_nccl_create_process_groups() , after creation loop, before creating thread, j=0, k=2, horovod_global.process_groups[j][k]=2]: 
+[2021-03-30 15:28:50.523832: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1670] [horovod_nccl_create_process_groups() , after creation loop, before creating thread, j=0, k=3, horovod_global.process_groups[j][k]=3]: 
+[2021-03-30 15:28:50.523894: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1670] [horovod_nccl_create_process_groups() , after creation loop, before creating thread, j=1, k=0, horovod_global.process_groups[j][k]=1]: 
+[2021-03-30 15:28:50.523955: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1670] [horovod_nccl_create_process_groups() , after creation loop, before creating thread, j=1, k=1, horovod_global.process_groups[j][k]=2]: 
+[2021-03-30 15:28:50.524105: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:608] [BackgroundThreadLoop(), Start.]: 
+[2021-03-30 15:28:50.524194: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:624] [BackgroundThreadLoop(), after creating MPIContextManager()]: 
+[2021-03-30 15:28:50.524257: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:639] [BackgroundThreadLoop(), before state.num_nccl_streams.]: 
+[2021-03-30 15:28:50.524318: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:649] [BackgroundThreadLoop(), state.num_nccl_streams from getenv = ]: 2
+[2021-03-30 15:28:50.524448: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:663] [BackgroundThreadLoop(), before parameter_manager.]: 
+[2021-03-30 15:28:50.524513: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:691] [BackgroundThreadLoop(), for n = 0, state.cache_capacity = 1024, parameter_manager.CacheEnabled = 1]: 
+[2021-03-30 15:28:50.524580: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:695] [BackgroundThreadLoop(), for n = 0, state.response_cache[n].capacity = 1024]: 
+[2021-03-30 15:28:50.524652: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:698] [BackgroundThreadLoop(), for n = 0, state.controller[n].response_cache_.capacity = 1024]: 
+[2021-03-30 15:28:50.524715: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:701] [BackgroundThreadLoop(), for n = 0, Directly : state.controller[n].response_cache_.capacity = 1024]: 
+[2021-03-30 15:28:50.524771: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:691] [BackgroundThreadLoop(), for n = 1, state.cache_capacity = 1024, parameter_manager.CacheEnabled = 1]: 
+[2021-03-30 15:28:50.524828: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:695] [BackgroundThreadLoop(), for n = 1, state.response_cache[n].capacity = 1024]: 
+[2021-03-30 15:28:50.524888: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:698] [BackgroundThreadLoop(), for n = 1, state.controller[n].response_cache_.capacity = 1024]: 
+[2021-03-30 15:28:50.524950: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:701] [BackgroundThreadLoop(), for n = 1, Directly : state.controller[n].response_cache_.capacity = 1024]: 
+[2021-03-30 15:28:50.525011: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:723] [BackgroundThreadLoop(), initialization loop on num_nccl_streams start]: 
+[2021-03-30 15:28:50.525073: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:727] [BackgroundThreadLoop(), stream no = 0]: 
+[2021-03-30 15:28:50.525134: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:728] [BackgroundThreadLoop(), ranks : ]: 
+[2021-03-30 15:28:50.525195: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:730] [BackgroundThreadLoop(), ranks : 0]: 
+[2021-03-30 15:28:50.525256: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:730] [BackgroundThreadLoop(), ranks : 1]: 
+[2021-03-30 15:28:50.525315: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:730] [BackgroundThreadLoop(), ranks : 2]: 
+[2021-03-30 15:28:50.525375: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:730] [BackgroundThreadLoop(), ranks : 3]: 
+[2021-03-30 15:28:50.525441: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:727] [BackgroundThreadLoop(), stream no = 1]: 
+[2021-03-30 15:28:50.525500: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:728] [BackgroundThreadLoop(), ranks : ]: 
+[2021-03-30 15:28:50.525560: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:730] [BackgroundThreadLoop(), ranks : 1]: 
+[2021-03-30 15:28:50.525620: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:730] [BackgroundThreadLoop(), ranks : 2]: 
+[2021-03-30 15:28:50.525694: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:743] [BackgroundThreadLoop(), This rank : 1 was found in this Communicator : 1]: 
+[2021-03-30 15:28:50.525755: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.h:46] MPI context enabled.
+[2021-03-30 15:28:50.525813: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:93] [MPIContext::Initialize() entered, ranks.size = 2]: 
+[2021-03-30 15:28:50.525873: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:95] [MPIContext::Initialize() ranks[0] = 1]: 
+[2021-03-30 15:28:50.525933: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:95] [MPIContext::Initialize() ranks[1] = 2]: 
+[2021-03-30 15:28:50.525989: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:136] MPIContext::Initialize()  ranks is NOT empty.
+[2021-03-30 15:28:50.526049: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:138] [MPI_Group ranks[0] = 1]: 
+[2021-03-30 15:28:50.526110: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:138] [MPI_Group ranks[1] = 2]: 
+[2021-03-30 15:28:50.526178: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:147] [MPI_Group_incl OK]: 
+[2021-03-30 15:28:50.526322: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:155] [MPI_Comm_create_group OK]: 
+[2021-03-30 15:28:50.526392: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:162] [MPIContext::Initialize()  MPI_Group created.]: 
+[2021-03-30 15:28:50.526572: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:196] [MPI_Comm_split local_comm OK]: 
+[2021-03-30 15:28:50.526662: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:202] MPIContext::Initialize() world_rank = 0, local_rank = 0
+[2021-03-30 15:28:50.526773: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_context.cc:208] [MPI_Comm_split cross_comm OK]: 
+[2021-03-30 15:28:50.526865: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:748] [BackgroundThreadLoop(), mpi_ctx_ initialized for MPI_controller : 1]: 
+[2021-03-30 15:28:50.526946: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:38] [MPIController::DoInitialization(), entered.]: 
+[2021-03-30 15:28:50.527027: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:47] MPIController::DoInitialization(), Coordinator : Starting Horovod with 2 processes
+[2021-03-30 15:28:50.527113: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:92] [MPIController::DoInitialization() ended.]: 
+[2021-03-30 15:28:50.527195: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:752] [BackgroundThreadLoop(), Controller[] initialized() for : 1]: 
+[2021-03-30 15:28:50.527278: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/timeline.cc:73] Setting TimelineFile. Current file: New filename:
+[2021-03-30 15:28:50.527361: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/timeline.cc:105] Inited TimelineWriter but active_ is false, since filename passed is empty string
+[2021-03-30 15:28:50.527485: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:834] [BackgroundThreadLoop(), initialization loop on num_nccl_streams end]: 
+[2021-03-30 15:28:50.527571: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:844] [BackgroundThreadLoop(), calling CreateOperationManager for controller : 0]: 
+[2021-03-30 15:28:50.527658: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:172] [CreateOperationManager(), entered with iComm = 0]: 
+[2021-03-30 15:28:50.527786: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/ops/gpu_operations.cc:31] [GPUOpContext::GPUOpContext() entered.]: 
+[2021-03-30 15:28:50.527889: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/ops/gpu_operations.cc:31] [GPUOpContext::GPUOpContext() entered.]: 
+[2021-03-30 15:28:50.527980: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/ops/gpu_operations.cc:31] [GPUOpContext::GPUOpContext() entered.]: 
+[2021-03-30 15:28:50.528066: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/ops/gpu_operations.cc:31] [GPUOpContext::GPUOpContext() entered.]: 
+[2021-03-30 15:28:50.528149: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/ops/gpu_operations.cc:31] [GPUOpContext::GPUOpContext() entered.]: 
+[2021-03-30 15:28:50.528232: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/ops/gpu_operations.cc:31] [GPUOpContext::GPUOpContext() entered.]: 
+[2021-03-30 15:28:50.528315: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:232] [CreateOperationManager(), pushed NCCLAlltoall into alltoall_ops]: 
+[2021-03-30 15:28:50.528397: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:288] [CreateOperationManager(), before calling new OperationManager]: 
+[2021-03-30 15:28:50.528456: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:848] [BackgroundThreadLoop(), returned from CreateOperationManager for controller : 0]: 
+[2021-03-30 15:28:50.528542: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:844] [BackgroundThreadLoop(), calling CreateOperationManager for controller : 1]: 
+[2021-03-30 15:28:50.528806: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:172] [CreateOperationManager(), entered with iComm = 1]: 
+[2021-03-30 15:28:50.528868: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/ops/gpu_operations.cc:31] [GPUOpContext::GPUOpContext() entered.]: 
+[2021-03-30 15:28:50.528962: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/ops/gpu_operations.cc:31] [GPUOpContext::GPUOpContext() entered.]: 
+[2021-03-30 15:28:50.529040: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/ops/gpu_operations.cc:31] [GPUOpContext::GPUOpContext() entered.]: 
+[2021-03-30 15:28:50.529108: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/ops/gpu_operations.cc:31] [GPUOpContext::GPUOpContext() entered.]: 
+[2021-03-30 15:28:50.529194: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/ops/gpu_operations.cc:31] [GPUOpContext::GPUOpContext() entered.]: 
+[2021-03-30 15:28:50.529286: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/ops/gpu_operations.cc:31] [GPUOpContext::GPUOpContext() entered.]: 
+[2021-03-30 15:28:50.529379: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:232] [CreateOperationManager(), pushed NCCLAlltoall into alltoall_ops]: 
+[2021-03-30 15:28:50.529454: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:288] [CreateOperationManager(), before calling new OperationManager]: 
+[2021-03-30 15:28:50.529549: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:848] [BackgroundThreadLoop(), returned from CreateOperationManager for controller : 1]: 
+[2021-03-30 15:28:50.529646: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:854] [1 : Horovod Initialized for this rank]: 
+[2021-03-30 15:28:50.530387: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1680] [horovod_nccl_create_process_groups() ,BackgroundThreadLoop created]: 
+boost_nccl::create_process_groups() called horovod_nccl_create_process_groups()
+nccl_create_process_groups in basics.py ended.
+
+
+PYTHON : Tensor before alltoall =  [[0.1, 0.1, 0.1, 0.1, 0.1, 0.1], [1.1, 1.1, 1.1, 1.1, 1.1, 1.1], [2.1, 2.1, 2.1, 2.1, 2.1, 2.1], [3.3, 3.3, 3.3, 3.3, 3.3, 3.3]]
+tensorflow/mpi_ops.py , alltoall() Start, process_group = 0
+2021-03-30 15:28:50.530856: I tensorflow/compiler/jit/xla_cpu_device.cc:41] Not creating XLA devices, tf_xla_enable_xla_devices not set
+2021-03-30 15:28:50.530958: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcuda.so.1
+2021-03-30 15:28:50.532379: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1720] Found device 0 with properties: 
+pciBusID: 0000:1a:00.0 name: Tesla V100-SXM2-16GB computeCapability: 7.0
+coreClock: 1.53GHz coreCount: 80 deviceMemorySize: 15.78GiB deviceMemoryBandwidth: 836.37GiB/s
+2021-03-30 15:28:50.535287: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1720] Found device 1 with properties: 
+pciBusID: 0000:1c:00.0 name: Tesla V100-SXM2-16GB computeCapability: 7.0
+coreClock: 1.53GHz coreCount: 80 deviceMemorySize: 15.78GiB deviceMemoryBandwidth: 836.37GiB/s
+2021-03-30 15:28:50.540255: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1720] Found device 2 with properties: 
+pciBusID: 0000:88:00.0 name: Tesla V100-SXM2-16GB computeCapability: 7.0
+coreClock: 1.53GHz coreCount: 80 deviceMemorySize: 15.78GiB deviceMemoryBandwidth: 836.37GiB/s
+2021-03-30 15:28:50.545179: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1720] Found device 3 with properties: 
+pciBusID: 0000:8a:00.0 name: Tesla V100-SXM2-16GB computeCapability: 7.0
+coreClock: 1.53GHz coreCount: 80 deviceMemorySize: 15.78GiB deviceMemoryBandwidth: 836.37GiB/s
+2021-03-30 15:28:50.545211: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+2021-03-30 15:28:50.545738: W tensorflow/stream_executor/platform/default/dso_loader.cc:60] Could not load dynamic library 'libcublas.so.11'; dlerror: libcublas.so.11: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /gpfswork/idris/hpe/shpe033/horovod-v0.21.1/horovod/tensorflow:/gpfslocalsup/spack_soft/boost/1.70.0/gcc-8.3.1-ac7s6bl2rvxgv7kt5dhqujijptqob26c/lib:/gpfswork/idris/hpe/shpe033/meshtensorflow_project/boost_nccl:/gpfswork/idris/hpe/shpe033/meshtensorflow_project/install_env/cuda:/gpfslocalsup/spack_soft/openmpi/4.0.2/intel-19.0.4-q6fk6qb3intsc3raxyvu6x3as6uadzsl/lib:/gpfslocalsup/spack_soft/cudnn/7.6.5.32-10.1-linux-x64/gcc-4.8.5-fn27wz3xidimpfcu4t3ctvc6vxjr3afy/lib64:/gpfslocalsup/spack_soft/nccl/2.5.6-2/gcc-4.8.5-qtdldqth7z3ybxfozhgrjryw6c2ideaw/lib:/gpfslocalsys/cuda/10.1.2/nvvm/lib64:/gpfslocalsys/cuda/10.1.2/extras/CUPTI/lib64:/gpfslocalsys/cuda/10.1.2/lib64:/gpfslocalsys/cuda/10.1.2/samples/common/lib/linux/x86_64:/gpfslocalsys/cuda/10.1.2/targets/x86_64-linux/lib:/gpfslocalsup/spack_soft/boost/1.70.0/intel-19.0.4-5zoh2xvpvjl3ecgofb5t75zy2tgasuxd/lib:/gpfslocalsys/intel/parallel_studio_xe_2019_update4_cluster_edition/compilers_and_libraries_2019.4.243/linux/compiler/lib/intel64_lin:/gpfslocalsup/spack_soft/flatbuffers/1.11.0/gcc-9.1.0-jtgrepiqbrbzlsjawqlmprdmcqp5drqu/lib64:/gpfslocalsup/spack_soft/gcc/9.1.0/gcc-8.3.1-dsq3humdshff2skbethmwa2pg4s2f7rz/lib64:/gpfslocalsup/spack_soft/gcc/9.1.0/gcc-8.3.1-dsq3humdshff2skbethmwa2pg4s2f7rz/lib:/gpfslocalsys/slurm/current/lib/slurm:/gpfslocalsys/slurm/current/lib
+2021-03-30 15:28:50.546045: W tensorflow/stream_executor/platform/default/dso_loader.cc:60] Could not load dynamic library 'libcublasLt.so.11'; dlerror: libcublasLt.so.11: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /gpfswork/idris/hpe/shpe033/horovod-v0.21.1/horovod/tensorflow:/gpfslocalsup/spack_soft/boost/1.70.0/gcc-8.3.1-ac7s6bl2rvxgv7kt5dhqujijptqob26c/lib:/gpfswork/idris/hpe/shpe033/meshtensorflow_project/boost_nccl:/gpfswork/idris/hpe/shpe033/meshtensorflow_project/install_env/cuda:/gpfslocalsup/spack_soft/openmpi/4.0.2/intel-19.0.4-q6fk6qb3intsc3raxyvu6x3as6uadzsl/lib:/gpfslocalsup/spack_soft/cudnn/7.6.5.32-10.1-linux-x64/gcc-4.8.5-fn27wz3xidimpfcu4t3ctvc6vxjr3afy/lib64:/gpfslocalsup/spack_soft/nccl/2.5.6-2/gcc-4.8.5-qtdldqth7z3ybxfozhgrjryw6c2ideaw/lib:/gpfslocalsys/cuda/10.1.2/nvvm/lib64:/gpfslocalsys/cuda/10.1.2/extras/CUPTI/lib64:/gpfslocalsys/cuda/10.1.2/lib64:/gpfslocalsys/cuda/10.1.2/samples/common/lib/linux/x86_64:/gpfslocalsys/cuda/10.1.2/targets/x86_64-linux/lib:/gpfslocalsup/spack_soft/boost/1.70.0/intel-19.0.4-5zoh2xvpvjl3ecgofb5t75zy2tgasuxd/lib:/gpfslocalsys/intel/parallel_studio_xe_2019_update4_cluster_edition/compilers_and_libraries_2019.4.243/linux/compiler/lib/intel64_lin:/gpfslocalsup/spack_soft/flatbuffers/1.11.0/gcc-9.1.0-jtgrepiqbrbzlsjawqlmprdmcqp5drqu/lib64:/gpfslocalsup/spack_soft/gcc/9.1.0/gcc-8.3.1-dsq3humdshff2skbethmwa2pg4s2f7rz/lib64:/gpfslocalsup/spack_soft/gcc/9.1.0/gcc-8.3.1-dsq3humdshff2skbethmwa2pg4s2f7rz/lib:/gpfslocalsys/slurm/current/lib/slurm:/gpfslocalsys/slurm/current/lib
+2021-03-30 15:28:50.581437: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+2021-03-30 15:28:50.630475: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+2021-03-30 15:28:50.680153: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.10
+2021-03-30 15:28:50.680740: W tensorflow/stream_executor/platform/default/dso_loader.cc:60] Could not load dynamic library 'libcusparse.so.11'; dlerror: libcusparse.so.11: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /gpfswork/idris/hpe/shpe033/horovod-v0.21.1/horovod/tensorflow:/gpfslocalsup/spack_soft/boost/1.70.0/gcc-8.3.1-ac7s6bl2rvxgv7kt5dhqujijptqob26c/lib:/gpfswork/idris/hpe/shpe033/meshtensorflow_project/boost_nccl:/gpfswork/idris/hpe/shpe033/meshtensorflow_project/install_env/cuda:/gpfslocalsup/spack_soft/openmpi/4.0.2/intel-19.0.4-q6fk6qb3intsc3raxyvu6x3as6uadzsl/lib:/gpfslocalsup/spack_soft/cudnn/7.6.5.32-10.1-linux-x64/gcc-4.8.5-fn27wz3xidimpfcu4t3ctvc6vxjr3afy/lib64:/gpfslocalsup/spack_soft/nccl/2.5.6-2/gcc-4.8.5-qtdldqth7z3ybxfozhgrjryw6c2ideaw/lib:/gpfslocalsys/cuda/10.1.2/nvvm/lib64:/gpfslocalsys/cuda/10.1.2/extras/CUPTI/lib64:/gpfslocalsys/cuda/10.1.2/lib64:/gpfslocalsys/cuda/10.1.2/samples/common/lib/linux/x86_64:/gpfslocalsys/cuda/10.1.2/targets/x86_64-linux/lib:/gpfslocalsup/spack_soft/boost/1.70.0/intel-19.0.4-5zoh2xvpvjl3ecgofb5t75zy2tgasuxd/lib:/gpfslocalsys/intel/parallel_studio_xe_2019_update4_cluster_edition/compilers_and_libraries_2019.4.243/linux/compiler/lib/intel64_lin:/gpfslocalsup/spack_soft/flatbuffers/1.11.0/gcc-9.1.0-jtgrepiqbrbzlsjawqlmprdmcqp5drqu/lib64:/gpfslocalsup/spack_soft/gcc/9.1.0/gcc-8.3.1-dsq3humdshff2skbethmwa2pg4s2f7rz/lib64:/gpfslocalsup/spack_soft/gcc/9.1.0/gcc-8.3.1-dsq3humdshff2skbethmwa2pg4s2f7rz/lib:/gpfslocalsys/slurm/current/lib/slurm:/gpfslocalsys/slurm/current/lib
+2021-03-30 15:28:50.681186: W tensorflow/stream_executor/platform/default/dso_loader.cc:60] Could not load dynamic library 'libcudnn.so.8'; dlerror: libcudnn.so.8: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: /gpfswork/idris/hpe/shpe033/horovod-v0.21.1/horovod/tensorflow:/gpfslocalsup/spack_soft/boost/1.70.0/gcc-8.3.1-ac7s6bl2rvxgv7kt5dhqujijptqob26c/lib:/gpfswork/idris/hpe/shpe033/meshtensorflow_project/boost_nccl:/gpfswork/idris/hpe/shpe033/meshtensorflow_project/install_env/cuda:/gpfslocalsup/spack_soft/openmpi/4.0.2/intel-19.0.4-q6fk6qb3intsc3raxyvu6x3as6uadzsl/lib:/gpfslocalsup/spack_soft/cudnn/7.6.5.32-10.1-linux-x64/gcc-4.8.5-fn27wz3xidimpfcu4t3ctvc6vxjr3afy/lib64:/gpfslocalsup/spack_soft/nccl/2.5.6-2/gcc-4.8.5-qtdldqth7z3ybxfozhgrjryw6c2ideaw/lib:/gpfslocalsys/cuda/10.1.2/nvvm/lib64:/gpfslocalsys/cuda/10.1.2/extras/CUPTI/lib64:/gpfslocalsys/cuda/10.1.2/lib64:/gpfslocalsys/cuda/10.1.2/samples/common/lib/linux/x86_64:/gpfslocalsys/cuda/10.1.2/targets/x86_64-linux/lib:/gpfslocalsup/spack_soft/boost/1.70.0/intel-19.0.4-5zoh2xvpvjl3ecgofb5t75zy2tgasuxd/lib:/gpfslocalsys/intel/parallel_studio_xe_2019_update4_cluster_edition/compilers_and_libraries_2019.4.243/linux/compiler/lib/intel64_lin:/gpfslocalsup/spack_soft/flatbuffers/1.11.0/gcc-9.1.0-jtgrepiqbrbzlsjawqlmprdmcqp5drqu/lib64:/gpfslocalsup/spack_soft/gcc/9.1.0/gcc-8.3.1-dsq3humdshff2skbethmwa2pg4s2f7rz/lib64:/gpfslocalsup/spack_soft/gcc/9.1.0/gcc-8.3.1-dsq3humdshff2skbethmwa2pg4s2f7rz/lib:/gpfslocalsys/slurm/current/lib/slurm:/gpfslocalsys/slurm/current/lib
+2021-03-30 15:28:50.681209: W tensorflow/core/common_runtime/gpu/gpu_device.cc:1757] Cannot dlopen some GPU libraries. Please make sure the missing libraries mentioned above are installed properly if you would like to use GPU. Follow the guide at https://www.tensorflow.org/install/gpu for how to download and setup the required libraries for your platform.
+Skipping registering GPU devices...
+2021-03-30 15:28:50.681648: I tensorflow/core/platform/cpu_feature_guard.cc:142] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX512F
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2021-03-30 15:28:50.682469: I tensorflow/compiler/jit/xla_gpu_device.cc:99] Not creating XLA devices, tf_xla_enable_xla_devices not set
+2021-03-30 15:28:50.682521: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1261] Device interconnect StreamExecutor with strength 1 edge matrix:
+2021-03-30 15:28:50.682534: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1267]      
+[2021-03-30 15:28:50.684249: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1477] [Entered horovod_rank()]: 
+tensorflow/mpi_ops.py , alltoall() , rank = 1
+
+get_process_groups in basics.py entered +++++
+
+get_process_groups in basics.py after wg +++++
+
+get_process_groups in basics.py after pgs  +++++
+
+get_process_groups in basics.py after insertion in pgs  +++++
+
+tensorflow/mpi_ops.py , alltoall() , process_groups = [[0, 1, 2, 3], [1, 2], [2, 3, 0]]
+tensorflow/mpi_ops.py , alltoall() rank = 1 belongs to  process_group = 0
+tensorflow/mpi_ops.py , alltoall() , name = None
+
+PYTHON : Exception in hvd.alltoall.
+
+
+HorovodBasics.shutdown
+
+[2021-03-30 15:28:50.918035: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1427] [horovod_shutdown() start.]: 
+[2021-03-30 15:28:55.529795: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1144] [RunLoopOnce(), entered, state.num_nccl_streams = 2]: 
+[2021-03-30 15:28:55.529879: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1161] [RunLoopOnce(), in loop for nccl_stream = 0]: 
+[2021-03-30 15:28:55.529956: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:82] [ComputeResponseList() entered, size_ = 4]: 
+[2021-03-30 15:28:55.530010: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:88] [ComputeResponseList(), index_controller = 0, GetRank() = 1]: 
+[2021-03-30 15:28:55.530063: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:92] [ComputeResponseList(), GetRanks()[0] = 0]: 
+[2021-03-30 15:28:55.530115: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:92] [ComputeResponseList(), GetRanks()[1] = 1]: 
+[2021-03-30 15:28:55.530167: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:92] [ComputeResponseList(), GetRanks()[2] = 2]: 
+[2021-03-30 15:28:55.530220: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:92] [ComputeResponseList(), GetRanks()[3] = 3]: 
+[2021-03-30 15:28:55.530288: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:104] [MPIController::ComputeResponseList(), MPI_Gather TEST 1 OK]: 
+[2021-03-30 15:28:55.530342: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:106] [MPIController::ComputeResponseList() TEST 1  recvcounts1[i] = 0]: 
+[2021-03-30 15:28:55.530393: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:106] [MPIController::ComputeResponseList() TEST 1  recvcounts1[i] = 0]: 
+[2021-03-30 15:28:55.530445: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:106] [MPIController::ComputeResponseList() TEST 1  recvcounts1[i] = 0]: 
+[2021-03-30 15:28:55.530497: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:106] [MPIController::ComputeResponseList() TEST 1  recvcounts1[i] = 0]: 
+[2021-03-30 15:28:55.530550: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:109] [ComputeResponseList(),  before IsAutoTuning, response_cache.capacity_ = 1024]: 
+[2021-03-30 15:28:55.530603: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:110] [ComputeResponseList(),  before IsAutoTuning, parameter_manager.CacheEnabled = 1]: 
+[2021-03-30 15:28:55.530661: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:117] [ComputeResponseList(),  IsAutoTuning() = FALSE]: 
+[2021-03-30 15:28:55.530713: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:118] [ComputeResponseList(),  after IsAutoTuning, response_cache.capacity_ = 1024]: 
+[2021-03-30 15:28:55.530765: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:124] [ComputeResponseList(),  before CacheCoordinator, num_active_bits = 0]: 
+[2021-03-30 15:28:55.530817: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:163] [ComputeResponseList() after analyzing message_queue_tmp , GetRank() = 1]: 
+[2021-03-30 15:28:55.530869: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:164] [ComputeResponseList() after analyzing message_queue_tmp , capacity = 1024]: 
+[2021-03-30 15:28:55.530921: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:176] [ComputeResponseList() should_shut_down = 1]: 
+[2021-03-30 15:28:55.530973: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:179] [ComputeResponseList() before ShouldPerformCheck]: 
+[2021-03-30 15:28:55.531037: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:186] [ComputeResponseList() ShouldPerformCheck, NOT is_coordinator]: 
+[2021-03-30 15:28:55.531089: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:189] [ComputeResponseList() ShoudPerformCheck, response_cache.capacity > 0]: 
+[2021-03-30 15:28:55.531147: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:315] [CacheCoordinator::sync() set_should_shut_down() : 1]: 
+[2021-03-30 15:28:55.531200: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:196] [ComputeResponseList() after UpdateCheckTime, should_shut_down = 1]: 
+[2021-03-30 15:28:55.531252: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:199] [ComputeResponseList() response_cache_.capacity > 0]: 
+[2021-03-30 15:28:55.531303: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:894] [Controller::CoordinateCacheAndState entered.]: 
+[2021-03-30 15:28:55.531355: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:350] [CacheCoordinator::sync() start.]: 
+[2021-03-30 15:28:55.531407: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:369] [CacheCoordinator::sync() after bitvector.]: 
+[2021-03-30 15:28:55.531459: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:377] [CacheCoordinator::sync() should_shut_down.]: 
+[2021-03-30 15:28:55.531511: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:386] [CacheCoordinator::sync() before cache_hits.erase.]: 
+[2021-03-30 15:28:55.531562: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:390] [CacheCoordinator::sync() after cache_hits.erase.]: 
+[2021-03-30 15:28:55.531624: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:406] [CacheCoordinator::sync() before CrossRankBitwiseAnd.]: 
+[2021-03-30 15:28:55.531731: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:101] [MPIController::CrossRankBitwiseAnd() start, count = 2, bitvector.size = 2]: 
+[2021-03-30 15:28:55.531809: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:103] [MPIController::CrossRankBitwiseAnd() for i = 0, bitvector.data = 6]: 
+[2021-03-30 15:28:55.531892: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:103] [MPIController::CrossRankBitwiseAnd() for i = 1, bitvector.data = -1]: 
+[2021-03-30 15:28:55.531975: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:107] [MPIController::CrossRankBitwiseAnd() mpi_comm = horovod_global.mpi_world_comm]: 
+[2021-03-30 15:28:55.535743: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:114] [MPIController::CrossRankBitwiseAnd() after MPI_Allreduce.]: 
+[2021-03-30 15:28:55.535888: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:119] [MPIController::CrossRankBitwiseAnd() end.]: 
+[2021-03-30 15:28:55.535982: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:408] [CacheCoordinator::sync() after CrossRankBitwiseAnd.]: 
+[2021-03-30 15:28:55.536072: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:427] [CacheCoordinator::sync() setting should_shut_down = true.]: 
+[2021-03-30 15:28:55.536255: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:484] [CacheCoordinator::sync() end.]: 
+[2021-03-30 15:28:55.536400: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:897] [Controller::CoordinateCacheAndState, after cache_coordinator.sync.]: 
+[2021-03-30 15:28:55.536546: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:905] [Controller::CoordinateCacheAndState, after invalid_bits.empty.]: 
+[2021-03-30 15:28:55.536667: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:909] [Controller::CoordinateCacheAndState, timeline_enabled]: 
+[2021-03-30 15:28:55.536796: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:928] [Controller::CoordinateCacheAndState, ended]: 
+[2021-03-30 15:28:55.536904: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:205] [ComputeResponseList() after CoordinateCacheAndState()]: 
+[2021-03-30 15:28:55.537033: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:211] [ComputeResponseList() num_messages = 0]: 
+[2021-03-30 15:28:55.537136: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:243] [ComputeResponseList() after test response_cache_.capacity ]: 
+[2021-03-30 15:28:55.537230: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:250] [1]: ComputeResponseList() message_queue_empty, No message sent to coordinator.
+[2021-03-30 15:28:55.537338: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:252] [ComputeResponseList() before set_shutdownn should_shut_down = 1]: 
+[2021-03-30 15:28:55.537534: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:257] [ComputeResponseList() before computing need_communication, uncached_in_queue = 0]: 
+[2021-03-30 15:28:55.537655: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:264] [ComputeResponseList() need_communication = FALSE]: 
+[2021-03-30 15:28:55.537754: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:267] [ComputeResponseList() cache_coordinator.cache_hits().empty(), return]: 
+[2021-03-30 15:28:55.537846: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1170] [RunLoopOnce(), for nccl_stream = 0, finished ComputeResponseList]: 
+[2021-03-30 15:28:55.537946: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1161] [RunLoopOnce(), in loop for nccl_stream = 1]: 
+[2021-03-30 15:28:55.538053: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:82] [ComputeResponseList() entered, size_ = 2]: 
+[2021-03-30 15:28:55.538286: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:88] [ComputeResponseList(), index_controller = 1, GetRank() = 0]: 
+[2021-03-30 15:28:55.538406: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:92] [ComputeResponseList(), GetRanks()[0] = 1]: 
+[2021-03-30 15:28:55.538536: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:92] [ComputeResponseList(), GetRanks()[1] = 2]: 
+[2021-03-30 15:28:55.538689: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:104] [MPIController::ComputeResponseList(), MPI_Gather TEST 1 OK]: 
+[2021-03-30 15:28:55.538778: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:106] [MPIController::ComputeResponseList() TEST 1  recvcounts1[i] = 1]: 
+[2021-03-30 15:28:55.538871: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:106] [MPIController::ComputeResponseList() TEST 1  recvcounts1[i] = 2]: 
+[2021-03-30 15:28:55.538963: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:106] [MPIController::ComputeResponseList() TEST 1  recvcounts1[i] = 0]: 
+[2021-03-30 15:28:55.539131: I /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:106] [MPIController::ComputeResponseList() TEST 1  recvcounts1[i] = 0]: 
+[2021-03-30 15:28:55.539398: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:109] [ComputeResponseList(),  before IsAutoTuning, response_cache.capacity_ = 1024]: 
+[2021-03-30 15:28:55.539561: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:110] [ComputeResponseList(),  before IsAutoTuning, parameter_manager.CacheEnabled = 1]: 
+[2021-03-30 15:28:55.539684: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:117] [ComputeResponseList(),  IsAutoTuning() = FALSE]: 
+[2021-03-30 15:28:55.539790: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:118] [ComputeResponseList(),  after IsAutoTuning, response_cache.capacity_ = 1024]: 
+[2021-03-30 15:28:55.539915: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:124] [ComputeResponseList(),  before CacheCoordinator, num_active_bits = 0]: 
+[2021-03-30 15:28:55.540037: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:163] [ComputeResponseList() after analyzing message_queue_tmp , GetRank() = 0]: 
+[2021-03-30 15:28:55.540132: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:164] [ComputeResponseList() after analyzing message_queue_tmp , capacity = 1024]: 
+[2021-03-30 15:28:55.540236: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:176] [ComputeResponseList() should_shut_down = 1]: 
+[2021-03-30 15:28:55.540377: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:179] [ComputeResponseList() before ShouldPerformCheck]: 
+[2021-03-30 15:28:55.540493: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:183] [ComputeResponseList() ShouldPerformCheck, is_coordinator, should_shut_down = 1]: 
+[2021-03-30 15:28:55.540757: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:189] [ComputeResponseList() ShoudPerformCheck, response_cache.capacity > 0]: 
+[2021-03-30 15:28:55.540862: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:315] [CacheCoordinator::sync() set_should_shut_down() : 1]: 
+[2021-03-30 15:28:55.540951: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:196] [ComputeResponseList() after UpdateCheckTime, should_shut_down = 1]: 
+[2021-03-30 15:28:55.541127: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:199] [ComputeResponseList() response_cache_.capacity > 0]: 
+[2021-03-30 15:28:55.541233: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:894] [Controller::CoordinateCacheAndState entered.]: 
+[2021-03-30 15:28:55.541323: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:350] [CacheCoordinator::sync() start.]: 
+[2021-03-30 15:28:55.541445: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:369] [CacheCoordinator::sync() after bitvector.]: 
+[2021-03-30 15:28:55.541608: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:377] [CacheCoordinator::sync() should_shut_down.]: 
+[2021-03-30 15:28:55.541708: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:386] [CacheCoordinator::sync() before cache_hits.erase.]: 
+[2021-03-30 15:28:55.541857: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:390] [CacheCoordinator::sync() after cache_hits.erase.]: 
+[2021-03-30 15:28:55.542220: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:406] [CacheCoordinator::sync() before CrossRankBitwiseAnd.]: 
+[2021-03-30 15:28:55.542602: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:101] [MPIController::CrossRankBitwiseAnd() start, count = 2, bitvector.size = 2]: 
+[2021-03-30 15:28:55.542830: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:103] [MPIController::CrossRankBitwiseAnd() for i = 0, bitvector.data = 6]: 
+[2021-03-30 15:28:55.542896: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:103] [MPIController::CrossRankBitwiseAnd() for i = 1, bitvector.data = -1]: 
+[2021-03-30 15:28:55.542956: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:109] [MPIController::CrossRankBitwiseAnd() mpi_comm ! MPI_COMM_NULL and  mpi_comm ! MPI_COMM_WORLD ]: 
+[2021-03-30 15:28:55.543084: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:114] [MPIController::CrossRankBitwiseAnd() after MPI_Allreduce.]: 
+[2021-03-30 15:28:55.543269: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/mpi/mpi_controller.cc:119] [MPIController::CrossRankBitwiseAnd() end.]: 
+[2021-03-30 15:28:55.543362: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:408] [CacheCoordinator::sync() after CrossRankBitwiseAnd.]: 
+[2021-03-30 15:28:55.543482: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:427] [CacheCoordinator::sync() setting should_shut_down = true.]: 
+[2021-03-30 15:28:55.543589: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/response_cache.cc:484] [CacheCoordinator::sync() end.]: 
+[2021-03-30 15:28:55.543764: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:897] [Controller::CoordinateCacheAndState, after cache_coordinator.sync.]: 
+[2021-03-30 15:28:55.543889: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:905] [Controller::CoordinateCacheAndState, after invalid_bits.empty.]: 
+[2021-03-30 15:28:55.543982: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:909] [Controller::CoordinateCacheAndState, timeline_enabled]: 
+[2021-03-30 15:28:55.544086: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:928] [Controller::CoordinateCacheAndState, ended]: 
+[2021-03-30 15:28:55.544194: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:205] [ComputeResponseList() after CoordinateCacheAndState()]: 
+[2021-03-30 15:28:55.544298: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:211] [ComputeResponseList() num_messages = 0]: 
+[2021-03-30 15:28:55.544379: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:243] [ComputeResponseList() after test response_cache_.capacity ]: 
+[2021-03-30 15:28:55.544497: T /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:250] [0]: ComputeResponseList() message_queue_empty, No message sent to coordinator.
+[2021-03-30 15:28:55.544602: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:252] [ComputeResponseList() before set_shutdownn should_shut_down = 1]: 
+[2021-03-30 15:28:55.544767: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:257] [ComputeResponseList() before computing need_communication, uncached_in_queue = 0]: 
+[2021-03-30 15:28:55.545008: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:264] [ComputeResponseList() need_communication = FALSE]: 
+[2021-03-30 15:28:55.545116: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/controller.cc:267] [ComputeResponseList() cache_coordinator.cache_hits().empty(), return]: 
+[2021-03-30 15:28:55.545195: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:1170] [RunLoopOnce(), for nccl_stream = 1, finished ComputeResponseList]: 
+[2021-03-30 15:28:55.545284: D /gpfsdswork/projects/idris/hpe/shpe033/horovod-v0.21.1/horovod/common/operations.cc:875] [1]: Shutting down background thread
