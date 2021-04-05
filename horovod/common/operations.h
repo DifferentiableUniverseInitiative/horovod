@@ -47,6 +47,9 @@ void horovod_init(const int *ranks, int nranks);
 #if HAVE_MPI
 // C interface to initialize Horovod with the given MPI communicator.
 void horovod_init_comm(MPI_Comm comm);
+
+// C interface to initialize Horovod with an array of existing MPI communicators.
+void horovod_init_multi_comm(MPI_Comm *comm, int ncomms);
 #endif
 
 // C interface to shut down Horovod.
@@ -55,6 +58,7 @@ void horovod_shutdown();
 // C interface to get index of current Horovod process.
 // Returns -1 if Horovod is not initialized.
 int horovod_rank();
+int horovod_rank_communicator(int32_t communicator_id=0);
 
 // C interface to get index of current Horovod process in the node it is on.
 // Returns -1 if Horovod is not initialized.
@@ -63,6 +67,7 @@ int horovod_local_rank();
 // C interface to return number of Horovod processes.
 // Returns -1 if Horovod is not initialized.
 int horovod_size();
+int horovod_size_communicator(int32_t communicator_id=0);
 
 // C interface to return number of Horovod processes in the node it is on.
 // Returns -1 if Horovod is not initialized.
@@ -119,7 +124,8 @@ Status EnqueueTensorAllreduce(std::shared_ptr<OpContext> context,
                               StatusCallback callback,
                               ReduceOp reduce_op = ReduceOp::SUM,
                               double prescale_factor = 1.0,
-                              double postscale_factor = 1.0);
+                              double postscale_factor = 1.0,
+                              int32_t communicator_id= 0);
 
 Status EnqueueTensorAllreduces(std::vector<std::shared_ptr<OpContext>>& contexts,
                                std::vector<std::shared_ptr<Tensor>>& tensors,
@@ -130,32 +136,37 @@ Status EnqueueTensorAllreduces(std::vector<std::shared_ptr<OpContext>>& contexts
                                std::vector<StatusCallback>& callbacks,
                                ReduceOp reduce_op = ReduceOp::SUM,
                                double prescale_factor = 1.0,
-                               double postscale_factor = 1.0);
+                               double postscale_factor = 1.0,
+                               int32_t communicator_id = 0);
 
 Status EnqueueTensorAllgather(std::shared_ptr<OpContext> context,
                               std::shared_ptr<Tensor> tensor,
                               std::shared_ptr<ReadyEvent> ready_event,
                               const std::string& name, int device,
-                              StatusCallback callback);
+                              StatusCallback callback,
+                              int32_t communicator_id = 0);
 
 Status EnqueueTensorBroadcast(std::shared_ptr<OpContext> context,
                               std::shared_ptr<Tensor> tensor,
                               std::shared_ptr<Tensor> output, int root_rank,
                               std::shared_ptr<ReadyEvent> ready_event,
                               const std::string& name, int device,
-                              StatusCallback callback);
+                              StatusCallback callback,
+                              int32_t communicator_id = 0);
 
 Status EnqueueTensorAlltoall(std::shared_ptr<OpContext> context,
                              std::shared_ptr<Tensor> tensor,
                              std::shared_ptr<Tensor> splits,
                              std::shared_ptr<ReadyEvent> ready_event,
                              const std::string& name, int device,
-                             StatusCallback callback);
+                             StatusCallback callback,
+                             int32_t communicator_id = 0);
 
 Status EnqueueJoin(std::shared_ptr<OpContext> context,
                    std::shared_ptr<ReadyEvent> ready_event,
                    const std::string& name, int device,
-                   StatusCallback callback);
+                   StatusCallback callback,
+                   int32_t communicator_id = 0);
 
 } // namespace common
 } // namespace horovod
